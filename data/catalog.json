@@ -1,0 +1,178 @@
+[
+  {
+    "file": "politica-caja-chica.md",
+    "path": "financiero\\politica-caja-chica.md",
+    "format": ".md",
+    "category": "financiero",
+    "category_label": "Financiero",
+    "owner": "Gerencia de Finanzas",
+    "size_kb": 3.0,
+    "last_modified": "2026-07-26T15:15:48.013343",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "politica-facturacion-cobranzas.md",
+    "path": "financiero\\politica-facturacion-cobranzas.md",
+    "format": ".md",
+    "category": "financiero",
+    "category_label": "Financiero",
+    "owner": "Gerencia de Finanzas",
+    "size_kb": 4.2,
+    "last_modified": "2026-07-26T15:16:15.665994",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "politica-gastos-reembolsos.md",
+    "path": "financiero\\politica-gastos-reembolsos.md",
+    "format": ".md",
+    "category": "financiero",
+    "category_label": "Financiero",
+    "owner": "Gerencia de Finanzas",
+    "size_kb": 6.3,
+    "last_modified": "2026-07-26T15:15:38.852232",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "procedimiento-compras.md",
+    "path": "financiero\\procedimiento-compras.md",
+    "format": ".md",
+    "category": "financiero",
+    "category_label": "Financiero",
+    "owner": "Gerencia de Finanzas",
+    "size_kb": 4.5,
+    "last_modified": "2026-07-26T15:16:00.548373",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "codigo-etica-anticorrupcion.md",
+    "path": "legal\\codigo-etica-anticorrupcion.md",
+    "format": ".md",
+    "category": "legal",
+    "category_label": "Legal",
+    "owner": "Gerencia Legal",
+    "size_kb": 5.8,
+    "last_modified": "2026-07-26T15:17:09.124708",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "politica-privacidad-datos.md",
+    "path": "legal\\politica-privacidad-datos.md",
+    "format": ".md",
+    "category": "legal",
+    "category_label": "Legal",
+    "owner": "Gerencia Legal",
+    "size_kb": 6.8,
+    "last_modified": "2026-07-26T15:17:01.573944",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "reglamento-interno-trabajo.md",
+    "path": "legal\\reglamento-interno-trabajo.md",
+    "format": ".md",
+    "category": "legal",
+    "category_label": "Legal",
+    "owner": "Gerencia Legal",
+    "size_kb": 7.5,
+    "last_modified": "2026-07-26T15:17:17.213142",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "guia-gestion-incidentes.md",
+    "path": "operacional\\guia-gestion-incidentes.md",
+    "format": ".md",
+    "category": "operacional",
+    "category_label": "Operacional",
+    "owner": "Gerencia de Operaciones",
+    "size_kb": 6.4,
+    "last_modified": "2026-07-26T15:17:29.400386",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "plan-continuidad-negocio.md",
+    "path": "operacional\\plan-continuidad-negocio.md",
+    "format": ".md",
+    "category": "operacional",
+    "category_label": "Operacional",
+    "owner": "Gerencia de Operaciones",
+    "size_kb": 5.4,
+    "last_modified": "2026-07-26T15:17:40.528491",
+    "ingested_at": "2026-07-26T18:33:34.655304"
+  },
+  {
+    "file": "politica-seguridad-informacion.md",
+    "path": "operacional\\politica-seguridad-informacion.md",
+    "format": ".md",
+    "category": "operacional",
+    "category_label": "Operacional",
+    "owner": "Gerencia de Operaciones",
+    "size_kb": 6.5,
+    "last_modified": "2026-07-26T15:17:48.485952",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  },
+  {
+    "file": "sla-proveedores.md",
+    "path": "operacional\\sla-proveedores.md",
+    "format": ".md",
+    "category": "operacional",
+    "category_label": "Operacional",
+    "owner": "Gerencia de Operaciones",
+    "size_kb": 4.6,
+    "last_modified": "2026-07-26T15:17:58.031285",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  },
+  {
+    "file": "beneficios-colaboradores.md",
+    "path": "rrhh\\beneficios-colaboradores.md",
+    "format": ".md",
+    "category": "rrhh",
+    "category_label": "Recursos Humanos",
+    "owner": "Gerencia de RRHH",
+    "size_kb": 6.0,
+    "last_modified": "2026-07-26T15:14:17.313679",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  },
+  {
+    "file": "manual-del-colaborador.md",
+    "path": "rrhh\\manual-del-colaborador.md",
+    "format": ".md",
+    "category": "rrhh",
+    "category_label": "Recursos Humanos",
+    "owner": "Gerencia de RRHH",
+    "size_kb": 6.1,
+    "last_modified": "2026-07-26T15:14:07.028212",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  },
+  {
+    "file": "politica-trabajo-remoto.md",
+    "path": "rrhh\\politica-trabajo-remoto.md",
+    "format": ".md",
+    "category": "rrhh",
+    "category_label": "Recursos Humanos",
+    "owner": "Gerencia de RRHH",
+    "size_kb": 4.3,
+    "last_modified": "2026-07-26T15:14:32.885945",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  },
+  {
+    "file": "politica-vacaciones-y-permisos.md",
+    "path": "rrhh\\politica-vacaciones-y-permisos.md",
+    "format": ".md",
+    "category": "rrhh",
+    "category_label": "Recursos Humanos",
+    "owner": "Gerencia de RRHH",
+    "size_kb": 4.3,
+    "last_modified": "2026-07-26T15:13:34.256807",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  },
+  {
+    "file": "proceso-onboarding.md",
+    "path": "rrhh\\proceso-onboarding.md",
+    "format": ".md",
+    "category": "rrhh",
+    "category_label": "Recursos Humanos",
+    "owner": "Gerencia de RRHH",
+    "size_kb": 4.3,
+    "last_modified": "2026-07-26T15:14:44.455492",
+    "ingested_at": "2026-07-26T18:33:34.656298"
+  }
+]

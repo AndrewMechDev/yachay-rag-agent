@@ -41,3 +41,30 @@ SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.35"))
 # === Datos ===
 DATA_RAW_DIR = BASE_DIR / "data" / "raw"
 DATA_PROCESSED_DIR = BASE_DIR / "data" / "processed"
+
+# === Categorías de negocio (detectadas por carpeta padre en data/raw/) ===
+BUSINESS_CATEGORIES = {
+    "rrhh": {
+        "label": "Recursos Humanos",
+        "owner": "Gerencia de RRHH",
+        "description": "Políticas de personal, beneficios, onboarding, vacaciones",
+    },
+    "financiero": {
+        "label": "Financiero",
+        "owner": "Gerencia de Finanzas",
+        "description": "Políticas de gastos, presupuestos, reembolsos, reportes",
+    },
+    "legal": {
+        "label": "Legal",
+        "owner": "Gerencia Legal",
+        "description": "Políticas de privacidad, contratos, compliance, normativa",
+    },
+    "operacional": {
+        "label": "Operacional",
+        "owner": "Gerencia de Operaciones",
+        "description": "Manuales de procesos, SLAs, guías de incidentes, procedimientos",
+    },
+}
+
+# === Formatos soportados por el pipeline de ingestión ===
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".pptx", ".md", ".csv", ".json", ".html", ".txt"}

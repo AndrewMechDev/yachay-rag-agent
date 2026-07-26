@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Entorno virtual
+venv/
+.venv/
+env/
+
+# Variables de entorno
+.env
+
+# Datos generados
+chroma_db/
+data/processed/*
+!data/processed/.gitkeep
+
+# Logs locales
+logs/*
+!logs/.gitkeep
+
+# Modelos descargados
+models/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.tar
+
+# Tooling local (Agent Teams Lite skill registry cache)
+.atl/

@@ -1,0 +1,33 @@
+# === LLM Client (OCI GenAI via OpenAI SDK) ===
+openai>=1.40.0
+
+# === Embeddings locales ===
+sentence-transformers>=3.0.0
+# torch se instala aparte con soporte CUDA (ver README): pip install torch --index-url https://download.pytorch.org/whl/cu124
+
+# === Framework RAG (LlamaIndex) ===
+llama-index-core>=0.11.0
+llama-index-llms-openai-like>=0.2.0
+llama-index-embeddings-huggingface>=0.3.0
+llama-index-vector-stores-chroma>=0.2.0
+llama-index-readers-file>=0.2.0
+
+# === Vector Store ===
+chromadb>=0.5.0
+
+# === Extraccion de documentos ===
+pymupdf>=1.24.0
+pymupdf4llm>=0.0.10
+pytesseract>=0.3.10
+Pillow>=10.0.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+python-pptx>=0.6.23
+beautifulsoup4>=4.12.0
+
+# === Interfaz ===
+streamlit>=1.37.0
+
+# === Utilidades ===
+python-dotenv>=1.0.0
+loguru>=0.7.0

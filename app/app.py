@@ -156,6 +156,24 @@ div.stButton > button:active {
 .source-meta { color: rgba(237, 235, 255, 0.68); font-size: 0.8125rem; }
 
 h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stChatMessage"], .glass-card {
+        animation: none !important;
+    }
+    div.stButton > button {
+        transition: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"] > div {
+        min-width: 100% !important;
+    }
+}
 </style>
 """
 st.markdown(THEME_CSS, unsafe_allow_html=True)
@@ -199,7 +217,7 @@ def render_confidence(confidence: float) -> None:
     else:
         level, label = "low", "Baja"
     st.markdown(
-        f'<span class="badge badge-{level}">Confianza {label} · {confidence:.0%}</span>',
+        f'<span class="badge badge-{level}" role="status">Confianza {label} · {confidence:.0%}</span>',
         unsafe_allow_html=True,
     )
 

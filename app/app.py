@@ -3,6 +3,7 @@ yachay-ui-streamlit). Indica que es un agente de IA, muestra fuentes citadas,
 permite feedback e historial por sesión."""
 
 import json
+import re
 import sys
 import time
 from datetime import datetime
@@ -19,6 +20,7 @@ from src.rag_engine import RAGEngine
 
 st.set_page_config(
     page_title=f"{APP_NAME} — Asistente de Conocimiento Corporativo",
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -28,10 +30,14 @@ setup_logging()
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 _avatar_assistant_path = STATIC_DIR / "avatar-assistant.png"
 _avatar_user_path = STATIC_DIR / "avatar-user.png"
+_logo_path = STATIC_DIR / "logo.svg"
 # Fallback a emoji si aún no se agregaron los PNG reales en app/static/
 # (evita que st.chat_message falle buscando un archivo inexistente).
 AVATAR_ASSISTANT = str(_avatar_assistant_path) if _avatar_assistant_path.exists() else "🧠"
 AVATAR_USER = str(_avatar_user_path) if _avatar_user_path.exists() else "🙂"
+# El logo se inlinea como SVG crudo en el HTML del brand-title (st.set_page_config
+# no soporta SVG como page_icon; PIL no lo decodifica). Vacío = fallback sin logo.
+LOGO_SVG = _logo_path.read_text(encoding="utf-8") if _logo_path.exists() else ""
 
 THEME_CSS = """
 <style>
@@ -106,6 +112,10 @@ div.stButton > button:active {
     transform: scale(0.97);
 }
 
+.brand-row { display: flex; align-items: center; gap: 0.75rem; }
+.brand-logo svg { display: block; width: 48px; height: 48px; }
+.brand-logo.sidebar svg { width: 34px; height: 34px; }
+
 .brand-title {
     font-size: 2.25rem;
     font-weight: 700;
@@ -164,6 +174,34 @@ div.stButton > button:active {
 
 .source-title { font-weight: 600; color: var(--yachay-text); }
 .source-meta { color: rgba(237, 235, 255, 0.68); font-size: 0.8125rem; }
+
+.source-preview {
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid var(--yachay-glass-border);
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    margin: 0.35rem 0 0.75rem 0;
+    color: rgba(237, 235, 255, 0.75);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+.yachay-answer p { margin-bottom: 0.75rem; line-height: 1.6; }
+.yachay-citation {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(212, 168, 85, 0.08);
+    border: 1px solid rgba(212, 168, 85, 0.25);
+    border-radius: 8px;
+    padding: 0.05rem 0.5rem;
+    margin: 0.15rem 0.15rem 0.15rem 0;
+    font-size: 0.78rem;
+    font-style: normal;
+    color: rgba(212, 168, 85, 0.95);
+    white-space: normal;
+}
 
 .badge-mock {
     background: rgba(224, 92, 92, 0.12);
@@ -231,20 +269,38 @@ def save_feedback(msg: dict, feedback_type: str) -> None:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+_CITATION_PATTERN = re.compile(r"📄\s*\*(\[[^\]]+\])\*")
+
+
+def format_response_html(text: str) -> str:
+    """Convierte el markdown de la respuesta a HTML simple, con las citas
+    (📄 *[archivo | sección | categoría]*) como chips en vez de texto itálico
+    en crudo. Envuelve párrafos en <p> para el espaciado de .yachay-answer."""
+    text = _CITATION_PATTERN.sub(r'<span class="yachay-citation">📄 \1</span>', text)
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    html_paragraphs = []
+    for p in paragraphs:
+        # Negrita/itálica markdown remanente (fuera de las citas ya convertidas).
+        p = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", p)
+        p = p.replace("\n", "<br>")
+        html_paragraphs.append(f"<p>{p}</p>")
+    return f'<div class="yachay-answer">{"".join(html_paragraphs)}</div>'
+
+
 def render_sources(sources: list) -> None:
-    """Renderiza el expander de fuentes citadas como glass cards, con la cita
-    en un st.code para que el usuario pueda copiarla (ícono nativo de Streamlit)."""
+    """Renderiza el expander de fuentes citadas como glass cards, con el
+    preview del fragmento como cita visual (no como bloque de código)."""
     with st.expander(f"Fuentes consultadas ({len(sources)})"):
         for j, src in enumerate(sources, 1):
+            preview = src.get("preview", "").replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
                 f"""<div class="glass-card">
                     <div class="source-title">{j}. {src['file']}</div>
                     <div class="source-meta">Categoría: {src['category']} · Sección: {src['section']} · Score: {src['score']}</div>
+                    <div class="source-preview">"{preview}"</div>
                 </div>""",
                 unsafe_allow_html=True,
             )
-            citation = f"{src['file']} · {src['section']}\n\n{src.get('preview', '')}"
-            st.code(citation, language=None)
 
 
 def render_skeleton() -> str:
@@ -256,12 +312,15 @@ def render_skeleton() -> str:
     )
 
 
-def stream_response(text: str, chunk_words: int = 6, delay: float = 0.02):
-    """Generador para el efecto typewriter: solo se usa en el turno recién generado,
-    nunca al re-renderizar el historial (evita repetir la animación en cada rerun)."""
+def render_answer_streamed(placeholder, text: str, chunk_words: int = 6, delay: float = 0.02) -> None:
+    """Efecto typewriter escribiendo sobre el HTML formateado (citas como chips,
+    no texto itálico en crudo). Solo se usa en el turno recién generado, nunca
+    al re-renderizar el historial (evita repetir la animación en cada rerun)."""
     words = text.split(" ")
+    shown = ""
     for i in range(0, len(words), chunk_words):
-        yield " ".join(words[i : i + chunk_words]) + " "
+        shown += " ".join(words[i : i + chunk_words]) + " "
+        placeholder.markdown(format_response_html(shown), unsafe_allow_html=True)
         time.sleep(delay)
 
 
@@ -308,7 +367,13 @@ def load_engine() -> RAGEngine:
 
 
 with st.sidebar:
-    st.markdown(f'<div class="brand-title sidebar">{APP_NAME}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""<div class="brand-row">
+            <div class="brand-logo sidebar">{LOGO_SVG}</div>
+            <div class="brand-title sidebar">{APP_NAME}</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
     st.markdown('<div class="brand-subtitle">Asistente de Conocimiento Corporativo</div>', unsafe_allow_html=True)
 
     st.divider()
@@ -361,7 +426,13 @@ if "feedback" not in st.session_state:
 if "engine" not in st.session_state:
     st.session_state.engine = load_engine()
 
-st.markdown(f'<div class="brand-title">{APP_NAME}</div>', unsafe_allow_html=True)
+st.markdown(
+    f"""<div class="brand-row">
+        <div class="brand-logo">{LOGO_SVG}</div>
+        <div class="brand-title">{APP_NAME}</div>
+    </div>""",
+    unsafe_allow_html=True,
+)
 st.markdown(
     '<p class="brand-subtitle">Pregunta lo que necesites sobre políticas, procesos y documentos internos de la empresa.</p>',
     unsafe_allow_html=True,
@@ -372,7 +443,10 @@ st.divider()
 for i, msg in enumerate(st.session_state.messages):
     avatar = AVATAR_USER if msg["role"] == "user" else AVATAR_ASSISTANT
     with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(msg["content"])
+        if msg["role"] == "assistant":
+            st.markdown(format_response_html(msg["content"]), unsafe_allow_html=True)
+        else:
+            st.markdown(msg["content"])
 
         if msg["role"] == "assistant" and msg.get("sources"):
             render_sources(msg["sources"])
@@ -395,16 +469,42 @@ for i, msg in enumerate(st.session_state.messages):
                 fb = st.session_state.feedback[feedback_key]
                 st.caption(f"Feedback registrado: {'Positivo' if fb == 'positive' else 'Negativo'}")
 
-SUGGESTED_QUESTIONS = [
-    "¿Cuántos días de vacaciones tengo si llevo 3 años?",
-    "¿Cuál es el límite de gastos de transporte?",
-    "¿Cómo reporto un incidente P1?",
-]
+QUESTIONS_BY_CATEGORY = {
+    "rrhh": [
+        "¿Cuántos días de vacaciones tengo al año?",
+        "¿Cómo es el proceso de onboarding para nuevos colaboradores?",
+        "¿Puedo trabajar de forma remota?",
+    ],
+    "financiero": [
+        "¿Cuál es el límite de gastos de transporte?",
+        "¿Cómo reporto un gasto de caja chica?",
+        "¿Cuál es el procedimiento para solicitar una compra?",
+    ],
+    "legal": [
+        "¿Cómo protege la empresa mis datos personales?",
+        "¿Qué dice el código de ética sobre regalos de proveedores?",
+        "¿Cuál es la jornada laboral según el reglamento interno?",
+    ],
+    "operacional": [
+        "¿Cómo reporto un incidente P1?",
+        "¿Qué hacer ante una interrupción del servicio?",
+        "¿Cuáles son los SLA acordados con proveedores?",
+    ],
+}
 
 if not st.session_state.messages:
-    st.markdown('<p class="caption-text">Prueba con una de estas preguntas:</p>', unsafe_allow_html=True)
-    chip_cols = st.columns(len(SUGGESTED_QUESTIONS))
-    for col, question in zip(chip_cols, SUGGESTED_QUESTIONS):
+    if category_filter:
+        # Categoria especifica seleccionada en el sidebar: sus 3 preguntas.
+        suggestions = QUESTIONS_BY_CATEGORY.get(category_filter, [])
+        label = f"Preguntas frecuentes de {BUSINESS_CATEGORIES[category_filter]['label']}:"
+    else:
+        # "Todas las areas": una pregunta representativa por categoria.
+        suggestions = [qs[0] for qs in QUESTIONS_BY_CATEGORY.values()]
+        label = "Prueba con una de estas preguntas:"
+
+    st.markdown(f'<p class="caption-text">{label}</p>', unsafe_allow_html=True)
+    chip_cols = st.columns(len(suggestions))
+    for col, question in zip(chip_cols, suggestions):
         with col:
             if st.button(question, key=f"chip_{question}", use_container_width=True):
                 st.session_state.pending_prompt = question
@@ -425,13 +525,11 @@ if prompt:
 
         result = st.session_state.engine.ask(query=prompt, category_filter=category_filter)
 
-        placeholder.empty()
-        st.write_stream(stream_response(result["response"]))
+        render_answer_streamed(placeholder, result["response"])
 
         if result["sources"]:
             render_sources(result["sources"])
-
-        render_confidence(result.get("confidence", 0))
+            render_confidence(result.get("confidence", 0))
         st.caption(f"Respondido en {result['latency_ms']}ms")
 
     st.session_state.messages.append(

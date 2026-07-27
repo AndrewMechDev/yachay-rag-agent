@@ -2,7 +2,7 @@
 
 Uso: python scripts/test_query.py "¿Cuál es la política de vacaciones?"
 
-Funciona con o sin OCI_GENAI_API_KEY configurada: si falta, usa MockLLMClient
+Funciona con o sin LLM_API_KEY configurada: si falta, usa MockLLMClient
 para validar retrieval + armado de contexto (ver src/generation/llm_client.py).
 """
 

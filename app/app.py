@@ -12,7 +12,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.config import APP_NAME, BUSINESS_CATEGORIES
+from src.config import APP_NAME, BUSINESS_CATEGORIES, LLM_PROVIDER_NAME
 from src.engine_singleton import get_engine
 from src.logging_config import setup_logging
 from src.rag_engine import RAGEngine
@@ -266,15 +266,15 @@ def stream_response(text: str, chunk_words: int = 6, delay: float = 0.02):
 
 
 def render_mode_badge(is_mock: bool) -> None:
-    """Badge persistente que indica si las respuestas vienen de MockLLMClient o de OCI GenAI real."""
+    """Badge persistente que indica si las respuestas vienen de MockLLMClient o del LLM real."""
     if is_mock:
         st.markdown(
-            '<span class="badge badge-mock" role="status">Modo simulado — sin conexión a OCI GenAI</span>',
+            '<span class="badge badge-mock" role="status">Modo simulado — sin conexión al LLM</span>',
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
-            '<span class="badge badge-live" role="status">Conectado a OCI Generative AI</span>',
+            f'<span class="badge badge-live" role="status">Conectado a {LLM_PROVIDER_NAME}</span>',
             unsafe_allow_html=True,
         )
 
@@ -348,8 +348,8 @@ with st.sidebar:
 
     st.subheader("Stack")
     st.markdown(
-        """
-    - **LLM**: OCI Generative AI
+        f"""
+    - **LLM**: {LLM_PROVIDER_NAME} (Llama 3.3 70B)
     - **Embeddings**: BAAI/bge-m3 (local)
     - **Vector Store**: ChromaDB (HNSW)
     - **Orquestación**: LlamaIndex

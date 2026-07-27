@@ -33,7 +33,7 @@ def main():
     run_indexing_pipeline(chunks)
 
     print("\nIndexación completa. El agente está listo para recibir preguntas.")
-    print("Siguiente paso (Fase 4): retrieval + generación con OCI GenAI.")
+    print("Siguiente paso (Fase 4): retrieval + generación con el LLM configurado.")
 
 
 if __name__ == "__main__":

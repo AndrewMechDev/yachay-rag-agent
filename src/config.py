@@ -1,9 +1,22 @@
 """Configuración centralizada: variables de entorno, paths y constantes del proyecto."""
 
+import os
+
+# Debe fijarse antes de importar torch/chromadb: en Windows, torch (MKL/OpenMP)
+# y chromadb (hnswlib, su propio runtime OpenMP) inicializan cada uno su copia
+# del runtime en el mismo proceso y eso puede tumbar el proceso sin traceback
+# de Python (el workaround estándar de Intel para este conflicto).
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
+# Segunda guarda contra telemetria de ChromaDB (independiente del
+# Settings(anonymized_telemetry=False) en vector_store.py): algunas versiones
+# de chromadb/posthog leen esta variable de entorno como fallback. Reduce
+# candidatos a llamadas de red durante el crash WinHTTP intermitente en Windows.
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+
 from pathlib import Path
 
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 

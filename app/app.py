@@ -3,13 +3,23 @@ yachay-ui-streamlit). Indica que es un agente de IA, muestra fuentes citadas,
 permite feedback e historial por sesión."""
 
 import json
+import os
 import sys
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Debe fijarse antes de importar src.rag_engine (que importa el embedder):
+# el server real de Streamlit crashea de forma intermitente al usar CUDA
+# junto a su ScriptRunner en Windows (ver yachay-buenas-practicas / commit
+# de este fix). Forzamos CPU solo para la app en vivo; la ingestión por CLI
+# sigue usando GPU.
+os.environ["YACHAY_FORCE_CPU_EMBEDDER"] = "1"
 
 from src.config import APP_NAME, BUSINESS_CATEGORIES
 from src.logging_config import setup_logging
@@ -22,6 +32,14 @@ st.set_page_config(
 )
 
 setup_logging()
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+_avatar_assistant_path = STATIC_DIR / "avatar-assistant.png"
+_avatar_user_path = STATIC_DIR / "avatar-user.png"
+# Fallback a emoji si aún no se agregaron los PNG reales en app/static/
+# (evita que st.chat_message falle buscando un archivo inexistente).
+AVATAR_ASSISTANT = str(_avatar_assistant_path) if _avatar_assistant_path.exists() else "🧠"
+AVATAR_USER = str(_avatar_user_path) if _avatar_user_path.exists() else "🙂"
 
 THEME_CSS = """
 <style>
@@ -155,6 +173,29 @@ div.stButton > button:active {
 .source-title { font-weight: 600; color: var(--yachay-text); }
 .source-meta { color: rgba(237, 235, 255, 0.68); font-size: 0.8125rem; }
 
+.badge-mock {
+    background: rgba(224, 92, 92, 0.12);
+    color: #F0A787;
+    border-color: rgba(224, 92, 92, 0.35);
+}
+.badge-live {
+    background: rgba(94, 219, 138, 0.12);
+    color: #6EE7A8;
+    border-color: rgba(94, 219, 138, 0.35);
+}
+
+@keyframes yachay-skeleton-pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.7; }
+}
+.skeleton-line {
+    height: 0.9rem;
+    border-radius: 6px;
+    background: var(--yachay-glass-border);
+    animation: yachay-skeleton-pulse 1.1s ease-in-out infinite;
+    margin-bottom: 0.6rem;
+}
+
 h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -163,6 +204,10 @@ h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; 
     }
     div.stButton > button {
         transition: none !important;
+    }
+    .skeleton-line {
+        animation: none !important;
+        opacity: 0.5 !important;
     }
 }
 
@@ -195,17 +240,51 @@ def save_feedback(msg: dict, feedback_type: str) -> None:
 
 
 def render_sources(sources: list) -> None:
-    """Renderiza el expander de fuentes citadas como glass cards."""
+    """Renderiza el expander de fuentes citadas como glass cards, con la cita
+    en un st.code para que el usuario pueda copiarla (ícono nativo de Streamlit)."""
     with st.expander(f"Fuentes consultadas ({len(sources)})"):
         for j, src in enumerate(sources, 1):
             st.markdown(
                 f"""<div class="glass-card">
                     <div class="source-title">{j}. {src['file']}</div>
                     <div class="source-meta">Categoría: {src['category']} · Sección: {src['section']} · Score: {src['score']}</div>
-                    <div class="source-meta">{src.get('preview', '')}</div>
                 </div>""",
                 unsafe_allow_html=True,
             )
+            citation = f"{src['file']} · {src['section']}\n\n{src.get('preview', '')}"
+            st.code(citation, language=None)
+
+
+def render_skeleton() -> str:
+    """Devuelve el markup de un placeholder tipo 'skeleton' mientras se busca la respuesta."""
+    return (
+        '<div class="skeleton-line" style="width: 90%;"></div>'
+        '<div class="skeleton-line" style="width: 75%;"></div>'
+        '<div class="skeleton-line" style="width: 50%;"></div>'
+    )
+
+
+def stream_response(text: str, chunk_words: int = 6, delay: float = 0.02):
+    """Generador para el efecto typewriter: solo se usa en el turno recién generado,
+    nunca al re-renderizar el historial (evita repetir la animación en cada rerun)."""
+    words = text.split(" ")
+    for i in range(0, len(words), chunk_words):
+        yield " ".join(words[i : i + chunk_words]) + " "
+        time.sleep(delay)
+
+
+def render_mode_badge(is_mock: bool) -> None:
+    """Badge persistente que indica si las respuestas vienen de MockLLMClient o de OCI GenAI real."""
+    if is_mock:
+        st.markdown(
+            '<span class="badge badge-mock" role="status">Modo simulado — sin conexión a OCI GenAI</span>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<span class="badge badge-live" role="status">Conectado a OCI Generative AI</span>',
+            unsafe_allow_html=True,
+        )
 
 
 def render_confidence(confidence: float) -> None:
@@ -222,10 +301,24 @@ def render_confidence(confidence: float) -> None:
     )
 
 
-@st.cache_resource
+_ENGINE_LOCK = threading.Lock()
+_ENGINE_SINGLETON: RAGEngine | None = None
+
+
 def load_engine() -> RAGEngine:
-    """Carga el RAG Engine una sola vez por sesión de servidor."""
-    return RAGEngine()
+    """Carga el RAG Engine una sola vez por proceso, con double-checked locking.
+
+    No usa solo `st.cache_resource`: Streamlit puede ejecutar el script varias
+    veces en paralelo (varias reruns casi simultáneas) antes de que el caché
+    quede poblado, y cargar bge-m3 más de una vez a la vez en una GPU de VRAM
+    limitada puede tumbar el proceso completo sin traceback de Python.
+    """
+    global _ENGINE_SINGLETON
+    if _ENGINE_SINGLETON is None:
+        with _ENGINE_LOCK:
+            if _ENGINE_SINGLETON is None:
+                _ENGINE_SINGLETON = RAGEngine()
+    return _ENGINE_SINGLETON
 
 
 with st.sidebar:
@@ -287,10 +380,12 @@ st.markdown(
     '<p class="brand-subtitle">Pregunta lo que necesites sobre políticas, procesos y documentos internos de la empresa.</p>',
     unsafe_allow_html=True,
 )
+render_mode_badge(st.session_state.engine.is_mock)
 st.divider()
 
 for i, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg["role"]):
+    avatar = AVATAR_USER if msg["role"] == "user" else AVATAR_ASSISTANT
+    with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"])
 
         if msg["role"] == "assistant" and msg.get("sources"):
@@ -335,14 +430,17 @@ if not prompt and st.session_state.get("pending_prompt"):
 
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
 
-    with st.chat_message("assistant"):
-        with st.spinner("Buscando en documentos internos..."):
-            result = st.session_state.engine.ask(query=prompt, category_filter=category_filter)
+    with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
+        placeholder = st.empty()
+        placeholder.markdown(render_skeleton(), unsafe_allow_html=True)
 
-        st.markdown(result["response"])
+        result = st.session_state.engine.ask(query=prompt, category_filter=category_filter)
+
+        placeholder.empty()
+        st.write_stream(stream_response(result["response"]))
 
         if result["sources"]:
             render_sources(result["sources"])

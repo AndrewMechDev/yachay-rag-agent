@@ -9,13 +9,17 @@ import os
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-# El modelo ya está en caché local — evita la llamada de red que hace
-# sentence-transformers al Hub para chequear metadata. Esa llamada es la que
-# crashea el proceso (access violation en WINHTTP.dll, ver Event Viewer:
-# STATUS_ACCESS_VIOLATION 0xC0000005), probablemente por software de
-# seguridad/VPN interceptando tráfico HTTPS de Windows.
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+# NO forzar modo offline por defecto: en deploys sin build propio (Streamlit
+# Community Cloud) el modelo nunca se cachea de antemano y necesita
+# descargarse la primera vez que arranca la app. El crash de Windows
+# (STATUS_ACCESS_VIOLATION 0xC0000005 en WINHTTP.dll) resultó ser un problema
+# de threading (torch + chromadb fuera del hilo principal, ver
+# src/engine_singleton.py), no de la llamada de red — por eso ya no hace falta
+# este workaround. Si en algún entorno local se necesita forzar offline
+# (modelo ya cacheado, sin salida a internet), setear YACHAY_EMBEDDER_OFFLINE=1.
+if os.getenv("YACHAY_EMBEDDER_OFFLINE") == "1":
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 from typing import List
 

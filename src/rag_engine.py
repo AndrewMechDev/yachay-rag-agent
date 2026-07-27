@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 from loguru import logger
 
-from src.generation.llm_client import get_llm_client
+from src.generation.llm_client import MockLLMClient, get_llm_client
 from src.generation.prompts import SYSTEM_PROMPT, build_user_prompt
 from src.generation.response_validator import validate_response
 from src.logging_config import log_interaction
@@ -26,6 +26,7 @@ class RAGEngine:
         logger.info("Inicializando YACHAY RAG Engine...")
         self.retriever = Retriever()
         self.llm = get_llm_client()
+        self.is_mock = isinstance(self.llm, MockLLMClient)
         logger.info(f"RAG Engine listo (LLM: {type(self.llm).__name__}).")
 
     def ask(self, query: str, category_filter: Optional[str] = None) -> Dict[str, Any]:

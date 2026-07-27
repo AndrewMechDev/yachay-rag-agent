@@ -3,9 +3,7 @@ yachay-ui-streamlit). Indica que es un agente de IA, muestra fuentes citadas,
 permite feedback e historial por sesión."""
 
 import json
-import os
 import sys
-import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -14,14 +12,8 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# Debe fijarse antes de importar src.rag_engine (que importa el embedder):
-# el server real de Streamlit crashea de forma intermitente al usar CUDA
-# junto a su ScriptRunner en Windows (ver yachay-buenas-practicas / commit
-# de este fix). Forzamos CPU solo para la app en vivo; la ingestión por CLI
-# sigue usando GPU.
-os.environ["YACHAY_FORCE_CPU_EMBEDDER"] = "1"
-
 from src.config import APP_NAME, BUSINESS_CATEGORIES
+from src.engine_singleton import get_engine
 from src.logging_config import setup_logging
 from src.rag_engine import RAGEngine
 
@@ -301,24 +293,26 @@ def render_confidence(confidence: float) -> None:
     )
 
 
-_ENGINE_LOCK = threading.Lock()
-_ENGINE_SINGLETON: RAGEngine | None = None
-
-
 def load_engine() -> RAGEngine:
-    """Carga el RAG Engine una sola vez por proceso, con double-checked locking.
+    """Obtiene el RAG Engine ya pre-cargado en el hilo principal por run_app.py.
 
-    No usa solo `st.cache_resource`: Streamlit puede ejecutar el script varias
-    veces en paralelo (varias reruns casi simultáneas) antes de que el caché
-    quede poblado, y cargar bge-m3 más de una vez a la vez en una GPU de VRAM
-    limitada puede tumbar el proceso completo sin traceback de Python.
+    IMPORTANTE (Windows): no construye `RAGEngine()` aquí. Streamlit ejecuta
+    este script en un hilo secundario ("ScriptRunner"), y torch + chromadb
+    juntos crashean con STATUS_ACCESS_VIOLATION (0xC0000005 en WINHTTP.dll) si
+    se inicializan fuera del hilo principal (ver src/engine_singleton.py para
+    el diagnóstico completo). Por eso la app se arranca con
+    `python run_app.py`, que pre-carga el motor antes de iniciar Streamlit.
     """
-    global _ENGINE_SINGLETON
-    if _ENGINE_SINGLETON is None:
-        with _ENGINE_LOCK:
-            if _ENGINE_SINGLETON is None:
-                _ENGINE_SINGLETON = RAGEngine()
-    return _ENGINE_SINGLETON
+    try:
+        return get_engine()
+    except RuntimeError:
+        st.error(
+            "El RAG Engine no se pre-cargó correctamente. "
+            "Arranca la app con `python run_app.py` en vez de "
+            "`streamlit run app/app.py` directamente (necesario en Windows "
+            "para evitar un crash conocido de torch + chromadb)."
+        )
+        st.stop()
 
 
 with st.sidebar:

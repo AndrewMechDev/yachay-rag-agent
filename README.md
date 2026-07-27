@@ -1,13 +1,3 @@
----
-title: YACHAY
-emoji: 🧠
-colorFrom: yellow
-colorTo: indigo
-sdk: docker
-app_port: 8501
-pinned: false
----
-
 # YACHAY
 
 > **YACHAY** (quechua: *conocimiento, saber*) — Agente RAG corporativo que responde preguntas de colaboradores a partir de documentos internos.
@@ -20,10 +10,10 @@ YACHAY busca en documentos internos (políticas, manuales, procedimientos), recu
 
 - Python 3.11.9
 - LlamaIndex + ChromaDB (vector store local)
-- Embeddings: `BAAI/bge-m3` (local, GPU CUDA)
+- Embeddings: `paraphrase-multilingual-MiniLM-L12-v2` (local, ~470MB — elegido por el límite de RAM de Streamlit Community Cloud; localmente con GPU/más RAM se puede usar `BAAI/bge-m3` para mejor calidad, ver `.env.example`)
 - LLM: Groq (`llama-3.3-70b-versatile`) vía endpoint compatible con OpenAI — se descartó OCI Generative AI por bloqueos del antifraude en el registro de cuenta gratuita de Oracle (ver `docs/sources.md`)
 - UI: Streamlit
-- Deploy: por definir (pendiente, ver `docs/sources.md`)
+- Deploy: Streamlit Community Cloud — se descartó Hugging Face Spaces porque en julio 2026 movieron Docker/Gradio Spaces detrás de una suscripción PRO de pago sin aviso previo (ver `docs/sources.md`)
 
 ## Setup local
 
@@ -92,36 +82,49 @@ Preguntas de ejemplo para probar (ya validadas contra los documentos reales):
 - "¿Cómo reporto un incidente P1?"
 - "¿Cuál es la receta del ceviche?" (pregunta fuera de dominio, para ver cómo reacciona el sistema)
 
-## Deploy (Hugging Face Spaces)
+## Deploy (Streamlit Community Cloud)
 
-Se descartó OCI Compute/Object Storage junto con OCI GenAI (ver `docs/sources.md`).
-El deploy usa **Hugging Face Spaces** (SDK Docker): gratis, sin tarjeta, con
-16GB RAM / 2 vCPU en el tier CPU básico — de sobra para `bge-m3` + ChromaDB +
-Streamlit, y pensado justo para este tipo de demo. `data/raw/` (16 `.md`) está
-versionado en git, así que la ingestión/indexación corre dentro del propio
-`Dockerfile` en build time; no hay disco persistente ni Object Storage.
+Se descartó Hugging Face Spaces: desde julio 2026 exige suscripción **PRO** de
+pago para crear Spaces con Docker o Gradio (solo dejan gratis los Spaces
+"Static", sin backend Python — ver `docs/sources.md`). El deploy usa
+**Streamlit Community Cloud**, el hosting oficial de Streamlit: gratis, sin
+tarjeta nunca, se conecta directo a GitHub y no necesita Dockerfile (Community
+Cloud arma el entorno solo con `requirements.txt` y `packages.txt`).
 
-1. Crea cuenta en [huggingface.co](https://huggingface.co) y un token con
-   permiso de escritura en [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
-2. Crea el Space en [huggingface.co/new-space](https://huggingface.co/new-space):
-   SDK **Docker**, hardware **CPU basic** (free), visibilidad a tu gusto.
-3. En el Space → **Settings → Variables and secrets**, agrega como *secret*:
-   `LLM_API_KEY` con tu API Key de Groq. (Opcional: `LLM_CHAT_MODEL` /
-   `LLM_BASE_URL` si algún día cambias de proveedor sin tocar código).
-4. Conecta el repo local al Space y sube el código:
-   ```bash
-   git remote add space https://huggingface.co/spaces/<tu-usuario>/<nombre-space>
-   git push space main
+Su límite de RAM es ajustado (~1-2.7GB), por eso el modelo de embeddings se
+cambió de `bge-m3` (2.2GB) a `paraphrase-multilingual-MiniLM-L12-v2` (~470MB).
+Como esta plataforma no tiene un paso de build propio (a diferencia del
+`Dockerfile`) y su disco es efímero, la app corre la ingestión + indexación
+automáticamente en el primer arranque si detecta el vector store vacío (ver
+`src/engine_singleton.py`); `data/raw/` (16 `.md`) está versionado en git, así
+que siempre tiene datos con qué trabajar.
+
+1. Sube este repo a GitHub (público, requerido para el tier gratuito) si aún
+   no está ahí.
+2. Crea cuenta en [share.streamlit.io](https://share.streamlit.io) con tu
+   cuenta de GitHub (sin tarjeta).
+3. Click en **"Create app"** → conecta el repo, rama `main`, archivo principal
+   `app/app.py`.
+4. Antes de desplegar, abre **"Advanced settings"** y pega en el campo
+   **Secrets** (formato TOML):
+   ```toml
+   LLM_API_KEY = "tu_api_key_de_groq"
+   LLM_CHAT_MODEL = "llama-3.3-70b-versatile"
+   LLM_BASE_URL = "https://api.groq.com/openai/v1"
+   LLM_PROVIDER_NAME = "Groq"
+   EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+   EMBEDDING_DIMENSION = "384"
    ```
-   (te pedirá login: usuario = tu usuario de HF, password = el token del paso 1).
-5. HF construye la imagen automáticamente (tarda varios minutos por el modelo
-   `bge-m3` + la ingestión). Revisa el progreso en la pestaña **Logs** del Space.
-6. Cuando el estado pase a **Running**, la app queda pública en
-   `https://huggingface.co/spaces/<tu-usuario>/<nombre-space>`.
+   (Streamlit expone cada clave de nivel raíz como variable de entorno, que es
+   justo lo que lee `src/config.py` vía `os.getenv()` — no hace falta tocar código).
+5. Click **Deploy**. La primera vez tarda varios minutos: instala dependencias,
+   descarga el modelo de embeddings y corre la ingestión/indexación automática.
+   Sigue el progreso en los logs dentro de la misma página.
+6. Cuando termine, la app queda pública en `https://<algo>.streamlit.app`.
 
-Si subes documentos nuevos a `data/raw/`, hay que volver a hacer
-`git push space main` para que se reconstruya la imagen con la ingestión
-actualizada (no hay hot-reload de datos en este esquema).
+Si el disco se reinicia (redeploy, o la app "duerme" tras 12h sin visitas y
+despierta), el chequeo de vector store vacío en `src/engine_singleton.py`
+vuelve a correr la ingestión automáticamente — no requiere intervención manual.
 
 ## Estructura
 

@@ -16,16 +16,30 @@ pipeline — solo `src/generation/llm_client.py` (renombrado `OCIGenAIClient` �
 `RemoteLLMClient`) y las variables de entorno (`OCI_GENAI_*` → `LLM_*`),
 gracias a que ya estaba detrás de una interfaz (`yachay-buenas-practicas`).
 
-**Deploy (Fase 6)**: aún no definido. La sección "Para el deploy en OCI" más
-abajo queda obsoleta hasta decidir el reemplazo (candidatos: Render, Fly.io,
-Railway, o un VPS con Docker Compose).
+**Deploy (Fase 6) — segundo cambio de plan**: se probó primero Hugging Face
+Spaces (SDK Docker, 16GB RAM / 2 vCPU gratis). Funcionó hasta que, en julio
+2026, HF empezó a exigir suscripción **PRO** de pago para crear Spaces con
+Docker o Gradio — cambio de política sin aviso ni actualización de su página
+de precios (reportado por varios usuarios en discuss.huggingface.co el mismo
+mes). Solo quedaron gratis los Spaces "Static" (HTML/JS puro, sin backend
+Python, no sirve para esta app).
+
+**Reemplazo de deploy**: [Streamlit Community Cloud](https://share.streamlit.io),
+el hosting oficial del propio framework Streamlit. Gratis, sin tarjeta nunca,
+deploy directo desde GitHub sin necesidad de Dockerfile. Su límite de RAM
+(~1-2.7GB) es más ajustado que el de HF Spaces, así que se cambió el modelo de
+embeddings de `BAAI/bge-m3` (2.2GB) a `paraphrase-multilingual-MiniLM-L12-v2`
+(~470MB) — ver `src/config.py`. Como esta plataforma no tiene un paso de build
+propio ni disco persistente garantizado, `src/engine_singleton.py` corre la
+ingestión + indexación automáticamente si detecta el vector store vacío al
+arrancar. Ver instrucciones paso a paso en el `README.md`.
 
 ## Fuentes de datos
 
 | Fuente | Tipo | Acceso | Estado |
 |---|---|---|---|
 | Carpeta local `data/raw/` | Carga manual (16 documentos `.md`) | Directo | ✅ Activo |
-| Object Storage en la nube | Bucket para deploy | Por definir | ⏳ Pendiente (ver decisión de deploy arriba) |
+| Object Storage en la nube | Bucket para deploy | Descartado — sin disco persistente en Streamlit Community Cloud, se re-ingesta desde `data/raw/` (versionado en git) en cada arranque en frío | ❌ Descartado |
 
 ## Categorías de negocio
 
@@ -64,9 +78,12 @@ La categoría se detecta automáticamente por la carpeta padre del documento
 1. Colocar documentos en la subcarpeta correspondiente de `data/raw/<categoria>/`.
 2. Ejecutar `python scripts/ingest_documents.py`.
 3. El pipeline extrae → limpia → chunkea (512 palabras, overlap 80) → genera
-   embeddings con `bge-m3` → indexa en ChromaDB, en un solo paso.
+   embeddings (`paraphrase-multilingual-MiniLM-L12-v2`, ver `src/config.py`) →
+   indexa en ChromaDB, en un solo paso.
 4. Se generan dos artefactos:
    - `data/catalog.json` — catálogo de documentos con categoría/owner (versionado en git).
    - `data/processed/chunks.json` — chunks listos para indexar (ignorado en git).
-5. Para el deploy en OCI (Fase 6, pendiente): los documentos se subirán a
-   Object Storage y se ingestarán desde allí en vez de `data/raw/` local.
+5. En Streamlit Community Cloud (Fase 6, deploy actual) este pipeline corre
+   automáticamente al arrancar si el vector store está vacío (ver
+   `src/engine_singleton.py`); no hay Object Storage ni disco persistente, así
+   que `data/raw/` (versionado en git) es la única fuente de verdad.

@@ -35,8 +35,15 @@ LLM_CHAT_MODEL = os.getenv("LLM_CHAT_MODEL", "llama-3.3-70b-versatile")
 LLM_PROVIDER_NAME = os.getenv("LLM_PROVIDER_NAME", "Groq")
 
 # === Embeddings ===
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "1024"))
+# Se cambio de BAAI/bge-m3 (~2.2GB) a este modelo multilingue mas liviano
+# (~470MB) porque el deploy final es en Streamlit Community Cloud, que tiene
+# un limite de RAM ajustado (~1-2.7GB) y no soporta Docker/Gradio gratis desde
+# julio 2026 (ver docs/sources.md). Para este corpus (16 documentos, ~223
+# chunks) la calidad de retrieval es equivalente; si se vuelve a un entorno
+# con mas RAM, se puede restaurar bge-m3 solo cambiando estas dos variables
+# (requiere re-indexar, EMBEDDING_DIMENSION cambia con el modelo).
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "384"))
 
 # === Chroma ===
 CHROMA_PERSIST_DIR = BASE_DIR / os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")

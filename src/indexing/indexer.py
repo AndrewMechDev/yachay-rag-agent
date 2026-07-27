@@ -1,4 +1,4 @@
-"""Pipeline de indexación: chunks procesados → embeddings (bge-m3) → ChromaDB."""
+"""Pipeline de indexación: chunks procesados → embeddings → ChromaDB."""
 
 import json
 from typing import Any, Dict, List, Optional

@@ -1,4 +1,5 @@
-"""Wrapper de embeddings locales (BAAI/bge-m3, GPU si hay CUDA disponible)."""
+"""Wrapper de embeddings locales (modelo configurable en src/config.py, GPU si
+hay CUDA disponible)."""
 
 import os
 
@@ -26,23 +27,13 @@ from src.config import EMBEDDING_DIMENSION, EMBEDDING_MODEL
 
 hf_logging.disable_progress_bar()
 
-# Streamlit (`streamlit run`) ejecuta el script en su propio modelo de hilos
-# (ScriptRunner); combinado con el contexto CUDA de PyTorch en Windows, eso
-# corrompe memoria de forma intermitente (crashea en un DLL nativo distinto
-# cada vez: WINHTTP.dll, arrow.dll — access violation 0xC0000005). Confirmado
-# que NO ocurre fuera de Streamlit, ni con streamlit importado, solo con el
-# server real corriendo. La app en vivo fuerza CPU para eliminar la clase de
-# bug; la ingestión por CLI (scripts/ingest_documents.py) sigue en GPU.
-_FORCE_CPU = os.getenv("YACHAY_FORCE_CPU_EMBEDDER") == "1"
-
-
 class LocalEmbedder:
-    """Genera embeddings con bge-m3 local. Mismo modelo para documentos y queries."""
+    """Genera embeddings con el modelo local configurado. Mismo modelo para
+    documentos y queries."""
 
     def __init__(self):
-        device = "cpu" if _FORCE_CPU else None
-        logger.info(f"Cargando modelo de embeddings: {EMBEDDING_MODEL} (device={device or 'auto'})")
-        self.model = SentenceTransformer(EMBEDDING_MODEL, device=device)
+        logger.info(f"Cargando modelo de embeddings: {EMBEDDING_MODEL} (device=auto)")
+        self.model = SentenceTransformer(EMBEDDING_MODEL)
         logger.info(f"Modelo cargado. Dispositivo: {self.model.device}. Dimensión: {EMBEDDING_DIMENSION}")
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
@@ -53,7 +44,9 @@ class LocalEmbedder:
             show_progress_bar=True,
             batch_size=32,
         )
-        # bge-m3 es Matryoshka: se puede truncar a EMBEDDING_DIMENSION sin re-entrenar.
+        # Truncado defensivo a EMBEDDING_DIMENSION: no-op con el modelo actual
+        # (su salida nativa ya es 384), pero deja la puerta abierta a modelos
+        # Matryoshka (ej. bge-m3) que sí soportan truncar sin re-entrenar.
         return [emb[:EMBEDDING_DIMENSION].tolist() for emb in embeddings]
 
     def embed_query(self, query: str) -> List[float]:

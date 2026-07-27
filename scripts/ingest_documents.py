@@ -3,7 +3,7 @@
 Uso: python scripts/ingest_documents.py
 
 1. Ingestión: escanea data/raw/, extrae, limpia y chunkea los documentos.
-2. Indexación: genera embeddings (bge-m3) y los inserta en ChromaDB.
+2. Indexación: genera embeddings (modelo en src/config.py) y los inserta en ChromaDB.
 """
 
 import sys

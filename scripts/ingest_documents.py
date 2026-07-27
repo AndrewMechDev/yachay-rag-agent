@@ -1,10 +1,9 @@
-"""CLI para ejecutar la ingestión completa.
+"""CLI para ejecutar la ingestión e indexación completa.
 
 Uso: python scripts/ingest_documents.py
 
-Escanea data/raw/, extrae, limpia y chunkea los documentos, y guarda:
-- data/catalog.json (catálogo de documentos con metadatos)
-- data/processed/chunks.json (chunks listos para indexación en Fase 3)
+1. Ingestión: escanea data/raw/, extrae, limpia y chunkea los documentos.
+2. Indexación: genera embeddings (bge-m3) y los inserta en ChromaDB.
 """
 
 import sys
@@ -12,15 +11,30 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.indexing.indexer import run_indexing_pipeline
 from src.ingest.pipeline import run_ingestion_pipeline
 from src.logging_config import setup_logging
 
-if __name__ == "__main__":
-    setup_logging()
-    chunks = run_ingestion_pipeline()
 
+def main():
+    setup_logging()
+
+    print("=" * 60)
+    print("YACHAY — Ingestión e indexación de documentos")
+    print("=" * 60)
+
+    chunks = run_ingestion_pipeline()
     if not chunks:
-        print("No se generaron chunks. Revisa data/raw/ y los logs.")
-    else:
-        print(f"Ingestión completa: {len(chunks)} chunks generados en data/processed/chunks.json")
-        print("Siguiente paso (Fase 3): python scripts/... indexación en ChromaDB.")
+        print("No se generaron chunks. Verifica los documentos en data/raw/")
+        sys.exit(1)
+
+    print(f"\nIngestión completa: {len(chunks)} chunks generados")
+
+    run_indexing_pipeline(chunks)
+
+    print("\nIndexación completa. El agente está listo para recibir preguntas.")
+    print("Siguiente paso (Fase 4): retrieval + generación con OCI GenAI.")
+
+
+if __name__ == "__main__":
+    main()

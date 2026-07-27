@@ -12,7 +12,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.config import APP_NAME, BUSINESS_CATEGORIES, LLM_PROVIDER_NAME
+from src.config import APP_NAME, BUSINESS_CATEGORIES, EMBEDDING_MODEL, LLM_PROVIDER_NAME
 from src.engine_singleton import get_engine
 from src.logging_config import setup_logging
 from src.rag_engine import RAGEngine
@@ -294,25 +294,17 @@ def render_confidence(confidence: float) -> None:
 
 
 def load_engine() -> RAGEngine:
-    """Obtiene el RAG Engine ya pre-cargado en el hilo principal por run_app.py.
+    """Obtiene el RAG Engine, vía el singleton en src/engine_singleton.py.
 
-    IMPORTANTE (Windows): no construye `RAGEngine()` aquí. Streamlit ejecuta
-    este script en un hilo secundario ("ScriptRunner"), y torch + chromadb
-    juntos crashean con STATUS_ACCESS_VIOLATION (0xC0000005 en WINHTTP.dll) si
-    se inicializan fuera del hilo principal (ver src/engine_singleton.py para
-    el diagnóstico completo). Por eso la app se arranca con
-    `python run_app.py`, que pre-carga el motor antes de iniciar Streamlit.
+    En Windows, `python run_app.py` ya lo pre-cargó en el hilo principal
+    (necesario ahí: torch + chromadb juntos crashean con
+    STATUS_ACCESS_VIOLATION 0xC0000005 en WINHTTP.dll si se inicializan fuera
+    del hilo principal). En Linux (Docker, Streamlit Community Cloud) ese bug
+    no aplica, así que get_engine() construye el motor de forma perezosa aquí
+    mismo si nadie lo hizo antes — funciona igual con `streamlit run
+    app/app.py` directo, sin pasar por run_app.py.
     """
-    try:
-        return get_engine()
-    except RuntimeError:
-        st.error(
-            "El RAG Engine no se pre-cargó correctamente. "
-            "Arranca la app con `python run_app.py` en vez de "
-            "`streamlit run app/app.py` directamente (necesario en Windows "
-            "para evitar un crash conocido de torch + chromadb)."
-        )
-        st.stop()
+    return get_engine()
 
 
 with st.sidebar:
@@ -350,7 +342,7 @@ with st.sidebar:
     st.markdown(
         f"""
     - **LLM**: {LLM_PROVIDER_NAME} (Llama 3.3 70B)
-    - **Embeddings**: BAAI/bge-m3 (local)
+    - **Embeddings**: {EMBEDDING_MODEL} (local)
     - **Vector Store**: ChromaDB (HNSW)
     - **Orquestación**: LlamaIndex
     """

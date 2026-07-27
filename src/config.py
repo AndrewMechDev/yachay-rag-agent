@@ -22,11 +22,17 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# === OCI Generative AI ===
-OCI_GENAI_API_KEY = os.getenv("OCI_GENAI_API_KEY", "")
-OCI_REGION = os.getenv("OCI_REGION", "sa-saopaulo-1")
-OCI_CHAT_MODEL = os.getenv("OCI_CHAT_MODEL", "meta.llama-3.3-70b-instruct")
-OCI_GENAI_BASE_URL = os.getenv("OCI_GENAI_BASE_URL", "")
+# === LLM (generación) ===
+# Se descartó OCI Generative AI: el registro de la cuenta gratuita de Oracle
+# quedó bloqueado por su sistema antifraude (ver docs/sources.md). Se usa
+# Groq en su lugar, vía su endpoint compatible con OpenAI — mismo cliente
+# (src/generation/llm_client.py), solo cambian estas variables. Cualquier
+# proveedor compatible con OpenAI (Gemini, OpenRouter, etc.) funciona igual
+# sin tocar código, solo ajustando LLM_BASE_URL/LLM_CHAT_MODEL.
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
+LLM_CHAT_MODEL = os.getenv("LLM_CHAT_MODEL", "llama-3.3-70b-versatile")
+LLM_PROVIDER_NAME = os.getenv("LLM_PROVIDER_NAME", "Groq")
 
 # === Embeddings ===
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")

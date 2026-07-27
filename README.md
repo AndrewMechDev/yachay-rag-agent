@@ -1,6 +1,6 @@
 # YACHAY
 
-> **YACHAY** (quechua: *conocimiento, saber*) — Agente RAG corporativo que responde preguntas de colaboradores a partir de documentos internos, desplegado sobre Oracle Cloud Infrastructure.
+> **YACHAY** (quechua: *conocimiento, saber*) — Agente RAG corporativo que responde preguntas de colaboradores a partir de documentos internos.
 
 ## Qué es
 
@@ -11,9 +11,9 @@ YACHAY busca en documentos internos (políticas, manuales, procedimientos), recu
 - Python 3.11.9
 - LlamaIndex + ChromaDB (vector store local)
 - Embeddings: `BAAI/bge-m3` (local, GPU CUDA)
-- LLM: OCI Generative AI (`meta.llama-3.3-70b-instruct`)
+- LLM: Groq (`llama-3.3-70b-versatile`) vía endpoint compatible con OpenAI — se descartó OCI Generative AI por bloqueos del antifraude en el registro de cuenta gratuita de Oracle (ver `docs/sources.md`)
 - UI: Streamlit
-- Deploy: Docker + OCI Compute
+- Deploy: por definir (pendiente, ver `docs/sources.md`)
 
 ## Setup local
 
@@ -23,7 +23,7 @@ py -3.11 -m venv venv
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 pip install -r requirements.txt
 copy .env.example .env
-# Editar .env con tu API Key de OCI GenAI (opcional, ver más abajo)
+# Editar .env con tu API Key de Groq (opcional, ver más abajo) — gratis en https://console.groq.com/keys
 ```
 
 ## Uso
@@ -42,14 +42,14 @@ python run_app.py
 > ("ScriptRunner"). Ver `src/engine_singleton.py` para el diagnóstico completo.
 > En Linux/macOS ambas formas funcionan igual.
 
-## Cómo probarlo ya mismo (sin cuenta OCI)
+## Cómo probarlo ya mismo (sin API key de LLM)
 
-El pipeline de ingestión, indexación y retrieval **no depende de OCI**: solo la
-generación de la respuesta final necesita el LLM. Mientras no tengas
-`OCI_GENAI_API_KEY` configurada (o el placeholder de `.env.example` siga tal
-cual), el sistema usa automáticamente un `MockLLMClient` que **no inventa
-texto**: te devuelve exactamente los fragmentos recuperados con su fuente y
-score, para que puedas validar que el retrieval funciona.
+El pipeline de ingestión, indexación y retrieval **no depende de ningún LLM**:
+solo la generación de la respuesta final lo necesita. Mientras no tengas
+`LLM_API_KEY` configurada (o el placeholder de `.env.example` siga tal cual),
+el sistema usa automáticamente un `MockLLMClient` que **no inventa texto**: te
+devuelve exactamente los fragmentos recuperados con su fuente y score, para
+que puedas validar que el retrieval funciona.
 
 1. Verifica que ya corriste la ingestión al menos una vez (genera `chroma_db/`):
    ```bash
@@ -59,7 +59,7 @@ score, para que puedas validar que el retrieval funciona.
    ```bash
    python scripts/test_query.py "¿Cuál es el límite de gastos de transporte?"
    ```
-   Vas a ver en la respuesta el prefijo `[MODO MOCK — sin conexión a OCI GenAI...]`
+   Vas a ver en la respuesta el prefijo `[MODO MOCK — sin conexión al LLM...]`
    seguido del contexto real recuperado (archivo, sección, score). Eso confirma
    que el buscador semántico está funcionando correctamente sobre tus 16
    documentos.
@@ -70,10 +70,11 @@ score, para que puedas validar que el retrieval funciona.
    Se abre en `http://localhost:8501`. Ahí puedes chatear, filtrar por categoría
    (RRHH/Financiero/Legal/Operacional), ver las fuentes citadas por respuesta y
    dar feedback 👍/👎.
-4. **Cuando tengas la API Key de OCI GenAI**: solo edítala en `.env`
-   (`OCI_GENAI_API_KEY=...`). No hay que tocar código ni reiniciar nada más que
-   el proceso — `get_llm_client()` detecta la key real y cambia automáticamente
-   de `MockLLMClient` a `OCIGenAIClient`.
+4. **Cuando tengas tu API Key de Groq** (gratis, sin tarjeta, en
+   [console.groq.com/keys](https://console.groq.com/keys)): solo edítala en
+   `.env` (`LLM_API_KEY=...`). No hay que tocar código ni reiniciar nada más
+   que el proceso — `get_llm_client()` detecta la key real y cambia
+   automáticamente de `MockLLMClient` a `RemoteLLMClient`.
 
 Preguntas de ejemplo para probar (ya validadas contra los documentos reales):
 - "¿Cuántos días de vacaciones tengo si llevo 3 años?"

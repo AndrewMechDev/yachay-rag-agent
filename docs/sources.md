@@ -1,11 +1,31 @@
 # YACHAY — Mapeo de Fuentes, Categorías y Ownership
 
+## Decisión: se descartó OCI (LLM y, probablemente, deploy)
+
+El plan original usaba OCI Generative AI para la generación y OCI Compute /
+Object Storage para el deploy. Se descartó el LLM de OCI porque el registro
+de cuenta gratuita de Oracle quedó bloqueado repetidamente por su sistema
+antifraude ("se ha producido un error al crear su cuenta", con tarjeta válida
+y datos correctos verificados con el banco) — un problema ampliamente
+reportado y no atribuible a un error del usuario.
+
+**Reemplazo de LLM**: [Groq](https://console.groq.com) (`llama-3.3-70b-versatile`),
+vía su endpoint compatible con OpenAI. Registro gratis sin tarjeta, sin
+verificación antifraude. El cambio no tocó `rag_engine.py` ni el resto del
+pipeline — solo `src/generation/llm_client.py` (renombrado `OCIGenAIClient` →
+`RemoteLLMClient`) y las variables de entorno (`OCI_GENAI_*` → `LLM_*`),
+gracias a que ya estaba detrás de una interfaz (`yachay-buenas-practicas`).
+
+**Deploy (Fase 6)**: aún no definido. La sección "Para el deploy en OCI" más
+abajo queda obsoleta hasta decidir el reemplazo (candidatos: Render, Fly.io,
+Railway, o un VPS con Docker Compose).
+
 ## Fuentes de datos
 
 | Fuente | Tipo | Acceso | Estado |
 |---|---|---|---|
 | Carpeta local `data/raw/` | Carga manual (16 documentos `.md`) | Directo | ✅ Activo |
-| OCI Object Storage | Bucket para deploy en la nube | API OCI SDK | ⏳ Pendiente (requiere cuenta OCI) |
+| Object Storage en la nube | Bucket para deploy | Por definir | ⏳ Pendiente (ver decisión de deploy arriba) |
 
 ## Categorías de negocio
 

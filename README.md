@@ -1,3 +1,13 @@
+---
+title: YACHAY
+emoji: 🧠
+colorFrom: yellow
+colorTo: indigo
+sdk: docker
+app_port: 8501
+pinned: false
+---
+
 # YACHAY
 
 > **YACHAY** (quechua: *conocimiento, saber*) — Agente RAG corporativo que responde preguntas de colaboradores a partir de documentos internos.
@@ -81,6 +91,37 @@ Preguntas de ejemplo para probar (ya validadas contra los documentos reales):
 - "¿Cuál es el límite de gastos de transporte?"
 - "¿Cómo reporto un incidente P1?"
 - "¿Cuál es la receta del ceviche?" (pregunta fuera de dominio, para ver cómo reacciona el sistema)
+
+## Deploy (Hugging Face Spaces)
+
+Se descartó OCI Compute/Object Storage junto con OCI GenAI (ver `docs/sources.md`).
+El deploy usa **Hugging Face Spaces** (SDK Docker): gratis, sin tarjeta, con
+16GB RAM / 2 vCPU en el tier CPU básico — de sobra para `bge-m3` + ChromaDB +
+Streamlit, y pensado justo para este tipo de demo. `data/raw/` (16 `.md`) está
+versionado en git, así que la ingestión/indexación corre dentro del propio
+`Dockerfile` en build time; no hay disco persistente ni Object Storage.
+
+1. Crea cuenta en [huggingface.co](https://huggingface.co) y un token con
+   permiso de escritura en [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
+2. Crea el Space en [huggingface.co/new-space](https://huggingface.co/new-space):
+   SDK **Docker**, hardware **CPU basic** (free), visibilidad a tu gusto.
+3. En el Space → **Settings → Variables and secrets**, agrega como *secret*:
+   `LLM_API_KEY` con tu API Key de Groq. (Opcional: `LLM_CHAT_MODEL` /
+   `LLM_BASE_URL` si algún día cambias de proveedor sin tocar código).
+4. Conecta el repo local al Space y sube el código:
+   ```bash
+   git remote add space https://huggingface.co/spaces/<tu-usuario>/<nombre-space>
+   git push space main
+   ```
+   (te pedirá login: usuario = tu usuario de HF, password = el token del paso 1).
+5. HF construye la imagen automáticamente (tarda varios minutos por el modelo
+   `bge-m3` + la ingestión). Revisa el progreso en la pestaña **Logs** del Space.
+6. Cuando el estado pase a **Running**, la app queda pública en
+   `https://huggingface.co/spaces/<tu-usuario>/<nombre-space>`.
+
+Si subes documentos nuevos a `data/raw/`, hay que volver a hacer
+`git push space main` para que se reconstruya la imagen con la ingestión
+actualizada (no hay hot-reload de datos en este esquema).
 
 ## Estructura
 

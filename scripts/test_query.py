@@ -11,6 +11,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# La consola de Windows (cp1252) no puede imprimir los emojis de citación que
+# devuelve el LLM (📄, etc.) — no es un problema de la respuesta ni del LLM.
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from src.logging_config import setup_logging
 from src.rag_engine import RAGEngine
 

@@ -3,7 +3,10 @@ openai>=1.40.0
 
 # === Embeddings locales ===
 sentence-transformers>=3.0.0
-# torch se instala aparte con soporte CUDA (ver README): pip install torch --index-url https://download.pytorch.org/whl/cu124
+# En Windows local con GPU, instalar torch aparte con soporte CUDA (ver README):
+# pip install torch --index-url https://download.pytorch.org/whl/cu124
+# En Docker/deploy (sin GPU) esta linea instala el build CPU normal de PyPI.
+torch>=2.0.0
 
 # === Framework RAG (LlamaIndex) ===
 llama-index-core>=0.11.0

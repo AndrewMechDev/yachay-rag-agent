@@ -12,7 +12,8 @@ from loguru import logger
 
 from src.generation.llm_client import MockLLMClient, get_llm_client
 from src.generation.prompts import SYSTEM_PROMPT, build_user_prompt
-from src.generation.response_validator import validate_response
+from src.generation.response_validator import generate_fallback_response, validate_response
+from src.generation.small_talk import detect_small_talk
 from src.logging_config import log_interaction
 from src.retrieval.context_builder import build_context, extract_sources_for_ui
 from src.retrieval.reranker import rerank
@@ -38,7 +39,54 @@ class RAGEngine:
         """
         start = time.time()
 
+        small_talk_response = detect_small_talk(query)
+        if small_talk_response is not None:
+            latency_ms = round((time.time() - start) * 1000, 1)
+            result = {
+                "query": query,
+                "response": small_talk_response,
+                "sources": [],
+                "confidence": 1.0,
+                "fallback_triggered": False,
+                "sources_count": 0,
+                "latency_ms": latency_ms,
+            }
+            log_interaction(
+                query=query,
+                sources=[],
+                response=small_talk_response,
+                confidence=1.0,
+                latency_ms=latency_ms,
+            )
+            return result
+
         retrieved = self.retriever.retrieve(query=query, category_filter=category_filter)
+
+        if not retrieved:
+            # Ninguna fuente supera SIMILARITY_THRESHOLD: la pregunta esta fuera
+            # del dominio de los documentos (o es saludo/small talk). Se
+            # responde directo sin llamar al LLM -- ahorra tokens/latencia y
+            # evita mostrar fuentes irrelevantes en la UI (yachay-rag-pipeline:
+            # el umbral se aplica ANTES de construir contexto o generar).
+            latency_ms = round((time.time() - start) * 1000, 1)
+            result = {
+                "query": query,
+                "response": generate_fallback_response("general"),
+                "sources": [],
+                "confidence": 0.0,
+                "fallback_triggered": True,
+                "sources_count": 0,
+                "latency_ms": latency_ms,
+            }
+            log_interaction(
+                query=query,
+                sources=[],
+                response=result["response"],
+                confidence=0.0,
+                latency_ms=latency_ms,
+            )
+            return result
+
         reranked = rerank(query=query, candidates=retrieved)
 
         context = build_context(reranked)

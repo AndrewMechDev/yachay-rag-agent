@@ -62,7 +62,13 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "80"))
 # === Retrieval ===
 TOP_K_RETRIEVAL = int(os.getenv("TOP_K_RETRIEVAL", "10"))
 TOP_K_RERANK = int(os.getenv("TOP_K_RERANK", "5"))
-SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.35"))
+# 0.35 era el umbral calibrado para bge-m3. paraphrase-multilingual-MiniLM-L12-v2
+# tiene una distribucion de similitud mucho mas comprimida: preguntas totalmente
+# fuera de dominio ("dame codigo de fibonacci", "receta de ceviche") puntuan
+# ~0.60-0.65, mientras que preguntas reales sobre los documentos puntuan
+# ~0.72-0.80. 0.35 dejaba pasar cualquier cosa. 0.68 separa ambos grupos con
+# margen (medido empiricamente, ver docs/sources.md).
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.68"))
 
 # === Datos ===
 DATA_RAW_DIR = BASE_DIR / "data" / "raw"

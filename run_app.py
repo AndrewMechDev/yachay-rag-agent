@@ -23,7 +23,10 @@ def main():
 
     from streamlit.web import cli as stcli
 
-    sys.argv = ["streamlit", "run", str(Path(__file__).resolve().parent / "app" / "app.py")]
+    app_path = str(Path(__file__).resolve().parent / "app" / "app.py")
+    # Reenvía argumentos extra (--server.port, --server.address, etc.) a
+    # Streamlit, necesarios para plataformas de deploy que inyectan $PORT.
+    sys.argv = ["streamlit", "run", app_path, *sys.argv[1:]]
     sys.exit(stcli.main())
 
 

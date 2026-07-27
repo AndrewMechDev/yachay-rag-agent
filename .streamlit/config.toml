@@ -6,22 +6,16 @@ secondaryBackgroundColor = "#161B2E"
 textColor = "#EDEBFF"
 font = "sans serif"
 
-# gatherUsageStats ya estaba en false. Nota de diagnóstico (crash WinHTTP,
-# ver Visor de Eventos / Application Error 0xC0000005): con la telemetría de
-# Streamlit ya desactivada y el crash persistiendo, la causa más probable NO
-# es una llamada de red de Streamlit ni de Hugging Face (HF_HUB_OFFLINE=1 en
-# src/indexing/embedder.py descarta esa segunda). Revisar antivirus/VPN que
-# intercepte HTTPS via WinHTTP, o un conflicto de threading CUDA+Streamlit
-# (ver comentario en src/indexing/embedder.py sobre YACHAY_FORCE_CPU_EMBEDDER).
 [browser]
 gatherUsageStats = false
 
 [client]
 showErrorDetails = true
 
-# Desactiva el watcher de archivos (usa APIs nativas de Windows para vigilar
-# cambios en disco) como otra fuente posible de código nativo en el mismo
-# proceso. Sin auto-reload al guardar cambios; reinicia el server manualmente.
-# Si se necesita de vuelta: streamlit run app/app.py --server.fileWatcherType auto
+# Desactivado durante el diagnóstico del crash de Windows (torch + chromadb
+# fuera del hilo principal, ver src/engine_singleton.py). Ya resuelto vía
+# init perezoso en el hilo de Streamlit, seguro en Linux (deploy). Se deja en
+# "none" solo porque no se necesita hot-reload en producción; localmente en
+# Windows se puede reactivar con --server.fileWatcherType auto si se quiere.
 [server]
 fileWatcherType = "none"

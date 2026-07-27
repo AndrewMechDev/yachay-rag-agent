@@ -1,4 +1,4 @@
-# === LLM Client (OCI GenAI via OpenAI SDK) ===
+# === LLM Client (Groq u otro proveedor compatible con OpenAI) ===
 openai>=1.40.0
 
 # === Embeddings locales ===

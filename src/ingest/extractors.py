@@ -8,6 +8,7 @@ contempla otros formatos para cuando se sumen documentos reales (PDF, DOCX, etc.
 
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -169,10 +170,55 @@ def extract_pptx(file_path: Path) -> List[Dict[str, Any]]:
     return results
 
 
+HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+)$")
+
+
 def extract_markdown(file_path: Path) -> List[Dict[str, Any]]:
-    """Extrae texto de archivos Markdown (formato de los 16 documentos fuente actuales)."""
+    """Extrae texto de Markdown segmentado por encabezado.
+
+    Cada segmento queda etiquetado con su heading en `metadata["section"]`,
+    requerido por yachay-rag-pipeline para citar archivo + sección de origen.
+    """
     text = file_path.read_text(encoding="utf-8")
-    return [{"text": text, "metadata": {"format": "markdown", "extraction_method": "native"}}]
+    lines = text.split("\n")
+
+    segments: List[Dict[str, Any]] = []
+    current_section = "Inicio"
+    current_lines: List[str] = []
+
+    def flush():
+        body = "\n".join(current_lines).strip()
+        if body:
+            segments.append(
+                {
+                    "text": body,
+                    "metadata": {
+                        "section": current_section,
+                        "format": "markdown",
+                        "extraction_method": "native",
+                    },
+                }
+            )
+
+    for line in lines:
+        match = HEADING_PATTERN.match(line.strip())
+        if match:
+            flush()
+            current_section = match.group(2).strip()
+            current_lines = [line]
+        else:
+            current_lines.append(line)
+    flush()
+
+    if not segments:
+        segments = [
+            {
+                "text": text,
+                "metadata": {"section": "Documento completo", "format": "markdown", "extraction_method": "native"},
+            }
+        ]
+
+    return segments
 
 
 def extract_csv_file(file_path: Path) -> List[Dict[str, Any]]:

@@ -40,3 +40,6 @@ Thumbs.db
 
 # Tooling local (Agent Teams Lite skill registry cache)
 .atl/
+
+# Tooling local (Claude Code: launch config, hooks, skills instalados como impeccable)
+.claude/

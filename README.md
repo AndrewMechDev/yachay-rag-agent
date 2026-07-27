@@ -31,8 +31,16 @@ copy .env.example .env
 ```bash
 python scripts/ingest_documents.py
 python scripts/test_query.py "¿Cuántos días de vacaciones tengo si llevo 3 años?"
-streamlit run app/app.py
+python run_app.py
 ```
+
+> **Windows**: usa `python run_app.py`, **no** `streamlit run app/app.py` directamente.
+> Este entrypoint pre-carga el RAG Engine (torch + chromadb) en el hilo principal
+> antes de arrancar Streamlit. Es necesario porque, en Windows, torch y chromadb
+> juntos crashean el proceso (`STATUS_ACCESS_VIOLATION 0xC0000005` en `WINHTTP.dll`)
+> si se inicializan desde el hilo secundario donde Streamlit ejecuta el script
+> ("ScriptRunner"). Ver `src/engine_singleton.py` para el diagnóstico completo.
+> En Linux/macOS ambas formas funcionan igual.
 
 ## Cómo probarlo ya mismo (sin cuenta OCI)
 
@@ -57,7 +65,7 @@ score, para que puedas validar que el retrieval funciona.
    documentos.
 3. Pruébalo con interfaz de chat completa:
    ```bash
-   streamlit run app/app.py
+   python run_app.py
    ```
    Se abre en `http://localhost:8501`. Ahí puedes chatear, filtrar por categoría
    (RRHH/Financiero/Legal/Operacional), ver las fuentes citadas por respuesta y

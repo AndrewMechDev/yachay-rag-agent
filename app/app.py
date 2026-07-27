@@ -25,56 +25,82 @@ setup_logging()
 
 THEME_CSS = """
 <style>
+:root {
+    --yachay-bg-1: #1b2140;
+    --yachay-bg-2: #0B0F1A;
+    --yachay-bg-3: #05070c;
+    --yachay-accent: #D4A855;
+    --yachay-text: #EDEBFF;
+    --yachay-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --yachay-glass-bg: rgba(255, 255, 255, 0.035);
+    --yachay-glass-border: rgba(255, 255, 255, 0.10);
+    --yachay-radius: 20px;
+}
+
+html, body, .stApp, [class*="css"] {
+    font-family: var(--yachay-font) !important;
+}
+
 .stApp {
-    background: radial-gradient(circle at top left, #1b2140 0%, #0B0F1A 55%, #05070c 100%);
+    background: radial-gradient(circle at top left, var(--yachay-bg-1) 0%, var(--yachay-bg-2) 55%, var(--yachay-bg-3) 100%);
+}
+
+@keyframes yachay-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 [data-testid="stSidebar"] {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(16px);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--yachay-glass-border);
 }
 
 [data-testid="stChatMessage"] {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--yachay-glass-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    padding: 0.75rem 1rem;
+    border: 1px solid var(--yachay-glass-border);
+    border-radius: var(--yachay-radius);
+    padding: 1rem 1rem;
     margin-bottom: 0.5rem;
+    animation: yachay-fade-in 0.25s ease-out;
 }
 
 [data-testid="stExpander"] {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--yachay-glass-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 14px;
+    border: 1px solid var(--yachay-glass-border);
+    border-radius: 16px;
 }
 
 [data-testid="stChatInput"] {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(212, 168, 85, 0.35);
-    border-radius: 14px;
+    border: 1px solid rgba(212, 168, 85, 0.3);
+    border-radius: 16px;
 }
 
 div.stButton > button {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    color: #EDEBFF;
-    transition: border-color 0.2s ease, color 0.2s ease;
+    border: 1px solid var(--yachay-glass-border);
+    border-radius: 12px;
+    color: var(--yachay-text);
+    transition: border-color 0.2s ease-out, color 0.2s ease-out, transform 0.1s ease-out;
 }
 div.stButton > button:hover {
-    border-color: #D4A855;
-    color: #D4A855;
+    border-color: var(--yachay-accent);
+    color: var(--yachay-accent);
+}
+div.stButton > button:active {
+    transform: scale(0.97);
 }
 
 .brand-title {
-    font-size: 2.3rem;
-    font-weight: 800;
-    background: linear-gradient(90deg, #D4A855, #EDEBFF);
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--yachay-accent), var(--yachay-text));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0;
@@ -83,46 +109,53 @@ div.stButton > button:hover {
     font-size: 1.5rem;
 }
 .brand-subtitle {
+    color: rgba(237, 235, 255, 0.7);
+    font-size: 1rem;
+    margin-top: 0.25rem;
+}
+.caption-text {
     color: rgba(237, 235, 255, 0.65);
-    margin-top: 0.1rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--yachay-glass-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--yachay-glass-border);
     border-radius: 16px;
-    padding: 0.9rem 1.1rem;
-    margin-bottom: 0.6rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    animation: yachay-fade-in 0.2s ease-out;
 }
 
 .glass-alert {
-    background: rgba(212, 168, 85, 0.08);
+    background: rgba(212, 168, 85, 0.07);
     backdrop-filter: blur(12px);
-    border-left: 3px solid #D4A855;
-    border-radius: 10px;
-    padding: 0.85rem 1.1rem;
-    font-size: 0.9rem;
-    color: #EDEBFF;
+    border-left: 3px solid var(--yachay-accent);
+    border-radius: 12px;
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: var(--yachay-text);
 }
 
 .badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
     border-radius: 999px;
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--yachay-glass-border);
 }
 .badge-high { background: rgba(94, 219, 138, 0.15); color: #6EE7A8; border-color: rgba(94, 219, 138, 0.4); }
-.badge-medium { background: rgba(212, 168, 85, 0.15); color: #D4A855; border-color: rgba(212, 168, 85, 0.4); }
+.badge-medium { background: rgba(212, 168, 85, 0.15); color: var(--yachay-accent); border-color: rgba(212, 168, 85, 0.4); }
 .badge-low { background: rgba(224, 92, 92, 0.15); color: #F08787; border-color: rgba(224, 92, 92, 0.4); }
 
-.source-title { font-weight: 600; color: #EDEBFF; }
-.source-meta { color: rgba(237, 235, 255, 0.6); font-size: 0.85rem; }
+.source-title { font-weight: 600; color: var(--yachay-text); }
+.source-meta { color: rgba(237, 235, 255, 0.68); font-size: 0.8125rem; }
 
-h1, h2, h3 { color: #EDEBFF !important; }
+h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; }
 </style>
 """
 st.markdown(THEME_CSS, unsafe_allow_html=True)
@@ -263,7 +296,26 @@ for i, msg in enumerate(st.session_state.messages):
                 fb = st.session_state.feedback[feedback_key]
                 st.caption(f"Feedback registrado: {'Positivo' if fb == 'positive' else 'Negativo'}")
 
-if prompt := st.chat_input("Escribe tu pregunta..."):
+SUGGESTED_QUESTIONS = [
+    "¿Cuántos días de vacaciones tengo si llevo 3 años?",
+    "¿Cuál es el límite de gastos de transporte?",
+    "¿Cómo reporto un incidente P1?",
+]
+
+if not st.session_state.messages:
+    st.markdown('<p class="caption-text">Prueba con una de estas preguntas:</p>', unsafe_allow_html=True)
+    chip_cols = st.columns(len(SUGGESTED_QUESTIONS))
+    for col, question in zip(chip_cols, SUGGESTED_QUESTIONS):
+        with col:
+            if st.button(question, key=f"chip_{question}", use_container_width=True):
+                st.session_state.pending_prompt = question
+                st.rerun()
+
+prompt = st.chat_input("Escribe tu pregunta...")
+if not prompt and st.session_state.get("pending_prompt"):
+    prompt = st.session_state.pop("pending_prompt")
+
+if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)

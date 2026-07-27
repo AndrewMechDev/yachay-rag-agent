@@ -3,8 +3,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-spa \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
+    libgl1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -13,11 +12,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Hornea el modelo de embeddings en la imagen (evita descargarlo en cada
-# arranque del contenedor).
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-m3')"
-
 COPY . .
+
+# Hornea el modelo de embeddings en la imagen (evita descargarlo en cada
+# arranque del contenedor). Usa EMBEDDING_MODEL de src/config.py para no
+# desalinearse si cambia el modelo por defecto.
+RUN python -c "from src.config import EMBEDDING_MODEL; from sentence_transformers import SentenceTransformer; SentenceTransformer(EMBEDDING_MODEL)"
 
 # Ingestion + indexacion en build time: data/raw/ (16 .md) esta versionado en
 # git, chroma_db/ y data/processed/ estan gitignored (son artefactos

@@ -2,6 +2,7 @@
 yachay-ui-streamlit). Indica que es un agente de IA, muestra fuentes citadas,
 permite feedback e historial por sesión."""
 
+import base64
 import json
 import re
 import sys
@@ -13,31 +14,70 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.config import APP_NAME, BUSINESS_CATEGORIES, EMBEDDING_MODEL, LLM_PROVIDER_NAME
+from src.config import APP_NAME, BUSINESS_CATEGORIES, LLM_PROVIDER_NAME
 from src.engine_singleton import get_engine
 from src.logging_config import setup_logging
 from src.rag_engine import RAGEngine
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+_avatar_assistant_path = STATIC_DIR / "avatar-assistant.png"
+_avatar_user_path = STATIC_DIR / "avatar-user.png"
+_owl_logo_path = STATIC_DIR / "logo-owl.png"
+_logo_svg_path = STATIC_DIR / "logo.svg"
+
+# Favicon: búho PNG (branding). Fallback Material Symbol si el archivo falta.
+_page_icon = (
+    str(_owl_logo_path)
+    if _owl_logo_path.exists()
+    else (str(_logo_svg_path) if _logo_svg_path.exists() else ":material/psychology:")
+)
+
 st.set_page_config(
     page_title=f"{APP_NAME} — Asistente de Conocimiento Corporativo",
-    page_icon="🧠",
+    page_icon=_page_icon,
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 setup_logging()
 
-STATIC_DIR = Path(__file__).resolve().parent / "static"
-_avatar_assistant_path = STATIC_DIR / "avatar-assistant.png"
-_avatar_user_path = STATIC_DIR / "avatar-user.png"
-_logo_path = STATIC_DIR / "logo.svg"
-# Fallback a emoji si aún no se agregaron los PNG reales en app/static/
-# (evita que st.chat_message falle buscando un archivo inexistente).
-AVATAR_ASSISTANT = str(_avatar_assistant_path) if _avatar_assistant_path.exists() else "🧠"
-AVATAR_USER = str(_avatar_user_path) if _avatar_user_path.exists() else "🙂"
-# El logo se inlinea como SVG crudo en el HTML del brand-title (st.set_page_config
-# no soporta SVG como page_icon; PIL no lo decodifica). Vacío = fallback sin logo.
-LOGO_SVG = _logo_path.read_text(encoding="utf-8") if _logo_path.exists() else ""
+
+def _png_data_uri(path: Path) -> str:
+    """Convierte un PNG local a data URI para embeberlo en HTML del brand header."""
+    if not path.exists():
+        return ""
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+_OWL_DATA_URI = _png_data_uri(_owl_logo_path)
+# Brand logo en header/sidebar: búho PNG. Si falta, fallback al SVG abstracto.
+if _OWL_DATA_URI:
+    LOGO_HTML = f'<img src="{_OWL_DATA_URI}" alt="{APP_NAME}" />'
+elif _logo_svg_path.exists():
+    LOGO_HTML = _logo_svg_path.read_text(encoding="utf-8")
+else:
+    LOGO_HTML = ""
+
+# Icono SVG de documento para chips de citas (sin emoji decorativo).
+ICON_DOCUMENT_SVG = (
+    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" '
+    'stroke-width="1.8" style="vertical-align:-2px"><path d="M6 2.5h8l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z"/>'
+    '<path d="M14 2.5V7h4"/><path d="M8 12h8M8 16h8M8 8.5h3"/></svg>'
+)
+_ICON_USER_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+    'stroke="#EDEBFF" stroke-width="1.6"><circle cx="12" cy="8" r="3.6"/>'
+    '<path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5"/></svg>'
+)
+
+# Avatar del asistente: búho. Avatar de usuario: PNG propio o SVG de persona.
+AVATAR_ASSISTANT = (
+    str(_avatar_assistant_path)
+    if _avatar_assistant_path.exists()
+    else (str(_owl_logo_path) if _owl_logo_path.exists() else ":material/psychology:")
+)
+AVATAR_USER = str(_avatar_user_path) if _avatar_user_path.exists() else _ICON_USER_SVG
 
 THEME_CSS = """
 <style>
@@ -112,9 +152,27 @@ div.stButton > button:active {
     transform: scale(0.97);
 }
 
-.brand-row { display: flex; align-items: center; gap: 0.75rem; }
-.brand-logo svg { display: block; width: 48px; height: 48px; }
-.brand-logo.sidebar svg { width: 34px; height: 34px; }
+.brand-row { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
+.brand-logo svg, .brand-logo img { display: block; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.brand-logo.sidebar svg, .brand-logo.sidebar img { width: 34px; height: 34px; }
+
+.yachay-hero { position: relative; overflow: hidden; padding-bottom: 0.25rem; }
+.yachay-hero .brand-subtitle { position: relative; z-index: 1; }
+.yachay-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(50px);
+    pointer-events: none;
+    z-index: 0;
+    animation: yachay-blob-float 16s ease-in-out infinite;
+}
+.yachay-blob-1 { width: 220px; height: 220px; top: -90px; left: -50px; background: var(--yachay-accent); opacity: 0.28; }
+.yachay-blob-2 { width: 200px; height: 200px; top: -70px; left: 200px; background: #6C63C9; opacity: 0.22; animation-delay: -5.5s; }
+.yachay-blob-3 { width: 160px; height: 160px; top: -20px; left: 440px; background: var(--yachay-text); opacity: 0.10; animation-delay: -10s; }
+@keyframes yachay-blob-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(24px, 18px) scale(1.12); }
+}
 
 .brand-title {
     font-size: 2.25rem;
@@ -202,6 +260,7 @@ div.stButton > button:active {
     color: rgba(212, 168, 85, 0.95);
     white-space: normal;
 }
+.yachay-citation svg { flex-shrink: 0; }
 
 .badge-mock {
     background: rgba(224, 92, 92, 0.12);
@@ -239,6 +298,9 @@ h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; 
         animation: none !important;
         opacity: 0.5 !important;
     }
+    .yachay-blob {
+        animation: none !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -274,9 +336,10 @@ _CITATION_PATTERN = re.compile(r"📄\s*\*(\[[^\]]+\])\*")
 
 def format_response_html(text: str) -> str:
     """Convierte el markdown de la respuesta a HTML simple, con las citas
-    (📄 *[archivo | sección | categoría]*) como chips en vez de texto itálico
-    en crudo. Envuelve párrafos en <p> para el espaciado de .yachay-answer."""
-    text = _CITATION_PATTERN.sub(r'<span class="yachay-citation">📄 \1</span>', text)
+    (📄 *[archivo | sección | categoría]*) como chips (icono SVG, no emoji)
+    en vez de texto itálico en crudo. Envuelve párrafos en <p> para el
+    espaciado de .yachay-answer."""
+    text = _CITATION_PATTERN.sub(rf'<span class="yachay-citation">{ICON_DOCUMENT_SVG} \1</span>', text)
     paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
     html_paragraphs = []
     for p in paragraphs:
@@ -366,10 +429,34 @@ def load_engine() -> RAGEngine:
     return get_engine()
 
 
+QUESTIONS_BY_CATEGORY = {
+    "rrhh": [
+        "¿Cuántos días de vacaciones tengo al año?",
+        "¿Cómo es el proceso de onboarding para nuevos colaboradores?",
+        "¿Puedo trabajar de forma remota?",
+    ],
+    "financiero": [
+        "¿Cuál es el límite de gastos de transporte?",
+        "¿Cómo reporto un gasto de caja chica?",
+        "¿Cuál es el procedimiento para solicitar una compra?",
+    ],
+    "legal": [
+        "¿Cómo protege la empresa mis datos personales?",
+        "¿Qué dice el código de ética sobre regalos de proveedores?",
+        "¿Cuál es la jornada laboral según el reglamento interno?",
+    ],
+    "operacional": [
+        "¿Cómo reporto un incidente P1?",
+        "¿Qué hacer ante una interrupción del servicio?",
+        "¿Cuáles son los SLA acordados con proveedores?",
+    ],
+}
+
+
 with st.sidebar:
     st.markdown(
         f"""<div class="brand-row">
-            <div class="brand-logo sidebar">{LOGO_SVG}</div>
+            <div class="brand-logo sidebar">{LOGO_HTML}</div>
             <div class="brand-title sidebar">{APP_NAME}</div>
         </div>""",
         unsafe_allow_html=True,
@@ -401,17 +488,23 @@ with st.sidebar:
     )
     category_filter = category_options[selected_category_label]
 
-    st.divider()
+    # Sugerencias reactivas al filtro: siempre visibles (no solo antes del
+    # primer mensaje), asi cambiar de area en cualquier momento de la
+    # conversacion muestra de inmediato que se puede preguntar ahi.
+    if category_filter:
+        sidebar_suggestions = QUESTIONS_BY_CATEGORY.get(category_filter, [])
+        sidebar_suggestions_label = f"Preguntas frecuentes de {BUSINESS_CATEGORIES[category_filter]['label']}"
+    else:
+        sidebar_suggestions = [qs[0] for qs in QUESTIONS_BY_CATEGORY.values()]
+        sidebar_suggestions_label = "Preguntas frecuentes (todas las áreas)"
 
-    st.subheader("Stack")
-    st.markdown(
-        f"""
-    - **LLM**: {LLM_PROVIDER_NAME} (Llama 3.3 70B)
-    - **Embeddings**: {EMBEDDING_MODEL} (local)
-    - **Vector Store**: ChromaDB (HNSW)
-    - **Orquestación**: LlamaIndex
-    """
-    )
+    with st.expander(sidebar_suggestions_label, expanded=not st.session_state.get("messages")):
+        for question in sidebar_suggestions:
+            if st.button(question, key=f"sidebar_chip_{question}", use_container_width=True):
+                st.session_state.pending_prompt = question
+                st.rerun()
+
+    st.divider()
 
     if st.button("Limpiar conversación", use_container_width=True):
         st.session_state.messages = []
@@ -427,14 +520,16 @@ if "engine" not in st.session_state:
     st.session_state.engine = load_engine()
 
 st.markdown(
-    f"""<div class="brand-row">
-        <div class="brand-logo">{LOGO_SVG}</div>
-        <div class="brand-title">{APP_NAME}</div>
+    f"""<div class="yachay-hero">
+        <span class="yachay-blob yachay-blob-1"></span>
+        <span class="yachay-blob yachay-blob-2"></span>
+        <span class="yachay-blob yachay-blob-3"></span>
+        <div class="brand-row">
+            <div class="brand-logo">{LOGO_HTML}</div>
+            <div class="brand-title">{APP_NAME}</div>
+        </div>
+        <p class="brand-subtitle">Pregunta lo que necesites sobre políticas, procesos y documentos internos de la empresa.</p>
     </div>""",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    '<p class="brand-subtitle">Pregunta lo que necesites sobre políticas, procesos y documentos internos de la empresa.</p>',
     unsafe_allow_html=True,
 )
 render_mode_badge(st.session_state.engine.is_mock)
@@ -468,29 +563,6 @@ for i, msg in enumerate(st.session_state.messages):
             if feedback_key in st.session_state.feedback:
                 fb = st.session_state.feedback[feedback_key]
                 st.caption(f"Feedback registrado: {'Positivo' if fb == 'positive' else 'Negativo'}")
-
-QUESTIONS_BY_CATEGORY = {
-    "rrhh": [
-        "¿Cuántos días de vacaciones tengo al año?",
-        "¿Cómo es el proceso de onboarding para nuevos colaboradores?",
-        "¿Puedo trabajar de forma remota?",
-    ],
-    "financiero": [
-        "¿Cuál es el límite de gastos de transporte?",
-        "¿Cómo reporto un gasto de caja chica?",
-        "¿Cuál es el procedimiento para solicitar una compra?",
-    ],
-    "legal": [
-        "¿Cómo protege la empresa mis datos personales?",
-        "¿Qué dice el código de ética sobre regalos de proveedores?",
-        "¿Cuál es la jornada laboral según el reglamento interno?",
-    ],
-    "operacional": [
-        "¿Cómo reporto un incidente P1?",
-        "¿Qué hacer ante una interrupción del servicio?",
-        "¿Cuáles son los SLA acordados con proveedores?",
-    ],
-}
 
 if not st.session_state.messages:
     if category_filter:

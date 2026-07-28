@@ -1,136 +1,185 @@
 # YACHAY
 
-> **YACHAY** (quechua: *conocimiento, saber*) — Agente RAG corporativo que responde preguntas de colaboradores a partir de documentos internos.
+> **YACHAY** (quechua: *conocimiento, saber*) — Asistente de IA que responde preguntas sobre documentos internos de la empresa, citando siempre la fuente.
 
-## Qué es
+---
 
-YACHAY busca en documentos internos (políticas, manuales, procedimientos), recupera los fragmentos relevantes y genera una respuesta citando la fuente exacta. Si no encuentra información suficiente, lo dice explícitamente en vez de inventar.
+## ¿Para qué sirve?
 
-## Stack
+Imagina que un colaborador pregunta:
 
-- Python 3.11.9
-- LlamaIndex + ChromaDB (vector store local)
-- Embeddings: `paraphrase-multilingual-MiniLM-L12-v2` (local, ~470MB — elegido por el límite de RAM de Streamlit Community Cloud; localmente con GPU/más RAM se puede usar `BAAI/bge-m3` para mejor calidad, ver `.env.example`)
-- LLM: Groq (`llama-3.3-70b-versatile`) vía endpoint compatible con OpenAI — se descartó OCI Generative AI por bloqueos del antifraude en el registro de cuenta gratuita de Oracle (ver `docs/sources.md`)
-- UI: Streamlit
-- Deploy: Streamlit Community Cloud — se descartó Hugging Face Spaces porque en julio 2026 movieron Docker/Gradio Spaces detrás de una suscripción PRO de pago sin aviso previo (ver `docs/sources.md`)
+- *¿Cuántos días de vacaciones me corresponden?*
+- *¿Cómo reporto un gasto?*
+- *¿Qué dice la política de privacidad?*
 
-## Setup local
+En vez de buscar en PDFs o preguntar a RRHH/Legal, **YACHAY busca en los documentos internos**, encuentra el fragmento relevante y responde **con la cita del archivo y la sección**.
 
-```bash
+Si no hay información suficiente en los documentos, **lo dice claramente** (no inventa).
+
+---
+
+## Qué puedes hacer con la app
+
+- Chatear en lenguaje natural sobre políticas y procesos
+- Filtrar por área: RRHH, Financiero, Legal u Operacional
+- Ver **preguntas sugeridas** según el área que elijas (en el menú lateral)
+- Revisar las **fuentes consultadas** de cada respuesta
+- Dar feedback 👍 / 👎 a las respuestas
+
+---
+
+## Cómo funciona (en simple)
+
+1. **Ingesta**: lee los documentos de `data/raw/`
+2. **Indexación**: los convierte en “vectores” y los guarda en ChromaDB
+3. **Búsqueda**: cuando preguntas, encuentra los trozos más parecidos
+4. **Respuesta**: un LLM (Groq) redacta la respuesta **solo** con esos trozos y cita la fuente
+
+Atajos útiles:
+- Saludos tipo “hola” / “gracias” se responden sin llamar al LLM (ahorra tokens)
+- Preguntas fuera de tema (ej. “receta de ceviche”) no inventan: avisan que no hay información
+
+---
+
+## Tecnologías
+
+| Pieza | Qué usamos |
+|---|---|
+| Lenguaje | Python 3.11 |
+| Interfaz | Streamlit |
+| Búsqueda semántica | LlamaIndex + ChromaDB |
+| Embeddings (local) | `paraphrase-multilingual-MiniLM-L12-v2` (~470 MB) |
+| LLM | Groq — Llama 3.3 70B |
+| Deploy | Streamlit Community Cloud (gratis) |
+
+> **Nota:** se descartó OCI Generative AI (problemas al crear cuenta Free Tier) y Hugging Face Spaces Docker (desde julio 2026 exige plan PRO de pago). Detalle en `docs/sources.md`.
+
+---
+
+## Setup local (Windows)
+
+```powershell
+# 1. Crear entorno virtual
 py -3.11 -m venv venv
 .\venv\Scripts\Activate.ps1
+
+# 2. Instalar PyTorch (ajusta cu124 si no tienes GPU NVIDIA)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# 3. Instalar el resto
 pip install -r requirements.txt
+
+# 4. Configurar variables
 copy .env.example .env
-# Editar .env con tu API Key de Groq (opcional, ver más abajo) — gratis en https://console.groq.com/keys
+# Edita .env y pega tu API Key de Groq (gratis en https://console.groq.com/keys)
 ```
 
-## Uso
+---
 
-```bash
+## Cómo usarlo
+
+### 1. Indexar los documentos (solo la primera vez, o si cambias archivos)
+
+```powershell
 python scripts/ingest_documents.py
+```
+
+### 2. Probar una pregunta en terminal
+
+```powershell
 python scripts/test_query.py "¿Cuántos días de vacaciones tengo si llevo 3 años?"
+```
+
+### 3. Abrir la interfaz de chat
+
+```powershell
 python run_app.py
 ```
 
-> **Windows**: usa `python run_app.py`, **no** `streamlit run app/app.py` directamente.
-> Este entrypoint pre-carga el RAG Engine (torch + chromadb) en el hilo principal
-> antes de arrancar Streamlit. Es necesario porque, en Windows, torch y chromadb
-> juntos crashean el proceso (`STATUS_ACCESS_VIOLATION 0xC0000005` en `WINHTTP.dll`)
-> si se inicializan desde el hilo secundario donde Streamlit ejecuta el script
-> ("ScriptRunner"). Ver `src/engine_singleton.py` para el diagnóstico completo.
-> En Linux/macOS ambas formas funcionan igual.
+Abre [http://localhost:8501](http://localhost:8501).
 
-## Cómo probarlo ya mismo (sin API key de LLM)
+> **Importante en Windows:** usa `python run_app.py`, **no** `streamlit run app/app.py`.
+> En Windows, cargar torch + ChromaDB desde el hilo de Streamlit puede cerrar el proceso.
+> `run_app.py` precarga el motor en el hilo principal. En Linux/macOS ambas formas funcionan.
 
-El pipeline de ingestión, indexación y retrieval **no depende de ningún LLM**:
-solo la generación de la respuesta final lo necesita. Mientras no tengas
-`LLM_API_KEY` configurada (o el placeholder de `.env.example` siga tal cual),
-el sistema usa automáticamente un `MockLLMClient` que **no inventa texto**: te
-devuelve exactamente los fragmentos recuperados con su fuente y score, para
-que puedas validar que el retrieval funciona.
+---
 
-1. Verifica que ya corriste la ingestión al menos una vez (genera `chroma_db/`):
-   ```bash
-   python scripts/ingest_documents.py
-   ```
-2. Prueba una pregunta desde la terminal, sin interfaz:
-   ```bash
-   python scripts/test_query.py "¿Cuál es el límite de gastos de transporte?"
-   ```
-   Vas a ver en la respuesta el prefijo `[MODO MOCK — sin conexión al LLM...]`
-   seguido del contexto real recuperado (archivo, sección, score). Eso confirma
-   que el buscador semántico está funcionando correctamente sobre tus 16
-   documentos.
-3. Pruébalo con interfaz de chat completa:
-   ```bash
-   python run_app.py
-   ```
-   Se abre en `http://localhost:8501`. Ahí puedes chatear, filtrar por categoría
-   (RRHH/Financiero/Legal/Operacional), ver las fuentes citadas por respuesta y
-   dar feedback 👍/👎.
-4. **Cuando tengas tu API Key de Groq** (gratis, sin tarjeta, en
-   [console.groq.com/keys](https://console.groq.com/keys)): solo edítala en
-   `.env` (`LLM_API_KEY=...`). No hay que tocar código ni reiniciar nada más
-   que el proceso — `get_llm_client()` detecta la key real y cambia
-   automáticamente de `MockLLMClient` a `RemoteLLMClient`.
+## Probar sin API key de Groq
 
-Preguntas de ejemplo para probar (ya validadas contra los documentos reales):
-- "¿Cuántos días de vacaciones tengo si llevo 3 años?"
-- "¿Cuál es el límite de gastos de transporte?"
-- "¿Cómo reporto un incidente P1?"
-- "¿Cuál es la receta del ceviche?" (pregunta fuera de dominio, para ver cómo reacciona el sistema)
+Si aún no tienes `LLM_API_KEY`, la app entra en **modo simulado**:
+- La búsqueda (retrieval) sigue funcionando con tus documentos
+- La “respuesta” muestra los fragmentos encontrados con su score
+- Verás el badge: *Modo simulado — sin conexión al LLM*
 
-## Deploy (Streamlit Community Cloud)
+Cuando pongas tu key en `.env` y reinicies, pasa solo a respuestas reales con Groq.
 
-Se descartó Hugging Face Spaces: desde julio 2026 exige suscripción **PRO** de
-pago para crear Spaces con Docker o Gradio (solo dejan gratis los Spaces
-"Static", sin backend Python — ver `docs/sources.md`). El deploy usa
-**Streamlit Community Cloud**, el hosting oficial de Streamlit: gratis, sin
-tarjeta nunca, se conecta directo a GitHub y no necesita Dockerfile (Community
-Cloud arma el entorno solo con `requirements.txt` y `packages.txt`).
+Preguntas de ejemplo:
 
-Su límite de RAM es ajustado (~1-2.7GB), por eso el modelo de embeddings se
-cambió de `bge-m3` (2.2GB) a `paraphrase-multilingual-MiniLM-L12-v2` (~470MB).
-Como esta plataforma no tiene un paso de build propio (a diferencia del
-`Dockerfile`) y su disco es efímero, la app corre la ingestión + indexación
-automáticamente en el primer arranque si detecta el vector store vacío (ver
-`src/engine_singleton.py`); `data/raw/` (16 `.md`) está versionado en git, así
-que siempre tiene datos con qué trabajar.
+- ¿Cuántos días de vacaciones tengo si llevo 3 años?
+- ¿Cuál es el límite de gastos de transporte?
+- ¿Cómo reporto un incidente P1?
+- ¿Cuál es la receta del ceviche? ← fuera de dominio (debe decir que no sabe)
 
-1. Sube este repo a GitHub (público, requerido para el tier gratuito) si aún
-   no está ahí.
-2. Crea cuenta en [share.streamlit.io](https://share.streamlit.io) con tu
-   cuenta de GitHub (sin tarjeta).
-3. Click en **"Create app"** → conecta el repo, rama `main`, archivo principal
-   `app/app.py`.
-4. Antes de desplegar, abre **"Advanced settings"** y pega en el campo
-   **Secrets** (formato TOML):
-   ```toml
-   LLM_API_KEY = "tu_api_key_de_groq"
-   LLM_CHAT_MODEL = "llama-3.3-70b-versatile"
-   LLM_BASE_URL = "https://api.groq.com/openai/v1"
-   LLM_PROVIDER_NAME = "Groq"
-   EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
-   EMBEDDING_DIMENSION = "384"
-   ```
-   (Streamlit expone cada clave de nivel raíz como variable de entorno, que es
-   justo lo que lee `src/config.py` vía `os.getenv()` — no hace falta tocar código).
-5. Click **Deploy**. La primera vez tarda varios minutos: instala dependencias,
-   descarga el modelo de embeddings y corre la ingestión/indexación automática.
-   Sigue el progreso en los logs dentro de la misma página.
-6. Cuando termine, la app queda pública en `https://<algo>.streamlit.app`.
+---
 
-Si el disco se reinicia (redeploy, o la app "duerme" tras 12h sin visitas y
-despierta), el chequeo de vector store vacío en `src/engine_singleton.py`
-vuelve a correr la ingestión automáticamente — no requiere intervención manual.
+## Deploy en Streamlit Community Cloud
 
-## Estructura
+1. Sube el repo a GitHub (público, para el plan gratis).
+2. Entra a [share.streamlit.io](https://share.streamlit.io) con GitHub.
+3. **Create app** → repo, rama `main`, archivo principal: `app/app.py`.
+4. En **Advanced settings → Secrets**, pega:
 
-Ver `yachay-execution-guide.md` sección 2 para el detalle completo del repositorio.
-Mapeo de fuentes, categorías y ownership de documentos: `docs/sources.md`.
+```toml
+LLM_API_KEY = "tu_api_key_de_groq"
+LLM_CHAT_MODEL = "llama-3.3-70b-versatile"
+LLM_BASE_URL = "https://api.groq.com/openai/v1"
+LLM_PROVIDER_NAME = "Groq"
+EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+EMBEDDING_DIMENSION = "384"
+```
 
-## Documentos fuente
+5. **Deploy**. La primera vez tarda unos minutos (instala deps, descarga el modelo e indexa los documentos).
 
-16 documentos `.md` en `data/raw/` organizados en `rrhh/`, `financiero/`, `legal/`, `operacional/`, sobre una empresa ficticia (NovaTech Perú S.A.C.) con contexto peruano real (Ley 29733, D.S. 003-97-TR, EsSalud, etc.).
+La URL queda tipo `https://<algo>.streamlit.app`.
+
+Si el disco se limpia (la app “duerme” tras ~12 h sin visitas), al despertar **reingesta sola** si el vector store está vacío.
+
+---
+
+## Documentos incluidos
+
+16 archivos `.md` de ejemplo (empresa ficticia **NovaTech Perú S.A.C.**) en:
+
+```
+data/raw/
+  rrhh/
+  financiero/
+  legal/
+  operacional/
+```
+
+Contexto peruano real (Ley 29733, D.S. 003-97-TR, EsSalud, etc.).
+
+Mapa de fuentes y decisiones del proyecto: [`docs/sources.md`](docs/sources.md).
+
+---
+
+## Estructura del proyecto (resumen)
+
+| Carpeta / archivo | Rol |
+|---|---|
+| `app/app.py` | Interfaz Streamlit |
+| `app/static/` | Logo (búho), avatares |
+| `src/ingest/` | Lectura y chunking de documentos |
+| `src/indexing/` | Embeddings + ChromaDB |
+| `src/retrieval/` | Búsqueda semántica |
+| `src/generation/` | LLM, prompts, small talk, validación |
+| `src/rag_engine.py` | Orquestador del pipeline |
+| `data/raw/` | Documentos fuente |
+| `scripts/` | Ingesta y pruebas por CLI |
+
+---
+
+## Licencia / notas
+
+Proyecto de demostración académica / portfolio. Las respuestas del agente **no sustituyen** la validación con el área responsable antes de decisiones críticas.

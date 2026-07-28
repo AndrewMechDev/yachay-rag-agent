@@ -12,136 +12,207 @@ La app está desplegada en Streamlit Community Cloud. Ábrela en el navegador (s
 
 ---
 
-## ¿Para qué sirve?
+## 1. Descripción general del proyecto
 
-Imagina que un colaborador pregunta:
+YACHAY es un **agente RAG** (Retrieval-Augmented Generation) de conocimiento corporativo.
 
-- *¿Cuántos días de vacaciones me corresponden?*
-- *¿Cómo reporto un gasto?*
-- *¿Qué dice la política de privacidad?*
+**Problema que resuelve:** los colaboradores pierden tiempo buscando políticas en PDFs o preguntando lo mismo a RRHH, Legal, Finanzas u Operaciones.
 
-En vez de buscar en PDFs o preguntar a RRHH/Legal, **YACHAY busca en los documentos internos**, encuentra el fragmento relevante y responde **con la cita del archivo y la sección**.
+**Qué hace:**
+1. Busca en documentos internos (políticas, manuales, procedimientos).
+2. Recupera los fragmentos más relevantes.
+3. Genera una respuesta en lenguaje natural **solo con esa evidencia**.
+4. Cita el archivo y la sección usados.
+5. Si no hay información suficiente, **lo dice** (no inventa).
 
-Si no hay información suficiente en los documentos, **lo dice claramente** (no inventa).
-
----
-
-## Qué puedes hacer con la app
-
-- Chatear en lenguaje natural sobre políticas y procesos
-- Filtrar por área: RRHH, Financiero, Legal u Operacional
-- Ver **preguntas sugeridas** según el área que elijas (en el menú lateral)
-- Leer el objetivo en **¿Qué es YACHAY?** (para quién es: colaborador vs RRHH/Legal)
-- Seguir los **3 pasos** del header: área → pregunta → fuentes citadas
-- Revisar las **fuentes consultadas** de cada respuesta
-- Dar feedback 👍 / 👎 a las respuestas
-- Presentar el agente con el guion de ~2 min: [`docs/guion-demo.md`](docs/guion-demo.md)
+Corpus de demo: 16 documentos `.md` de una empresa ficticia (**NovaTech Perú S.A.C.**), con contexto normativo peruano, en cuatro áreas: RRHH, Financiero, Legal y Operacional.
 
 ---
 
-## Cómo funciona (en simple)
+## 2. Arquitectura de la solución
 
-1. **Ingesta**: lee los documentos de `data/raw/`
-2. **Indexación**: los convierte en “vectores” y los guarda en ChromaDB
-3. **Búsqueda**: cuando preguntas, encuentra los trozos más parecidos
-4. **Respuesta**: un LLM (Groq) redacta la respuesta **solo** con esos trozos y cita la fuente
+Pipeline por etapas (feature folders), orquestado por `src/rag_engine.py`:
 
-Atajos útiles:
-- Saludos tipo “hola” / “gracias” se responden sin llamar al LLM (ahorra tokens)
-- Preguntas fuera de tema (ej. “receta de ceviche”) no inventan: avisan que no hay información
+```mermaid
+flowchart LR
+  A[Documentos<br/>data/raw/] --> B[Ingesta<br/>src/ingest/]
+  B --> C[Embeddings<br/>src/indexing/]
+  C --> D[(ChromaDB)]
+  E[Pregunta del usuario] --> F[Retrieval<br/>src/retrieval/]
+  D --> F
+  F --> G{¿Hay chunks<br/>sobre el umbral?}
+  G -->|No| H[Fallback<br/>sin llamar al LLM]
+  G -->|Sí| I[Generación<br/>Groq / Llama 3.3]
+  I --> J[Respuesta + citas]
+  H --> J
+  E --> K{¿Small talk?}
+  K -->|Sí| L[Respuesta enlatada]
+  K -->|No| F
+```
+
+| Capa | Responsabilidad | Ubicación |
+|---|---|---|
+| UI | Chat, filtros por área, fuentes, feedback | `app/app.py` |
+| Orquestación | Une retrieval + generación + atajos | `src/rag_engine.py` |
+| Ingesta | Lee archivos, limpia y hace chunking | `src/ingest/` |
+| Indexación | Embeddings locales + persistencia vectorial | `src/indexing/` |
+| Retrieval | Búsqueda semántica + umbral de similitud | `src/retrieval/` |
+| Generación | Prompt anti-alucinación, LLM, validación, small talk | `src/generation/` |
+| Config | Variables de entorno y constantes | `src/config.py` |
+
+**Decisiones clave (sin romper el flujo):**
+- Si la similitud no supera el umbral → respuesta de “no encontré información” **sin gastar tokens del LLM**.
+- Saludos / gracias / despedidas → respuestas enlatadas (sin retrieval ni LLM).
+- El cliente LLM es intercambiable (`RemoteLLMClient` / `MockLLMClient`).
+
+Detalle de fuentes y pivotes de deploy: [`docs/sources.md`](docs/sources.md).
 
 ---
 
-## Tecnologías
+## 3. Tecnologías y herramientas
 
-| Pieza | Qué usamos |
+| Pieza | Tecnología |
 |---|---|
 | Lenguaje | Python 3.11 |
 | Interfaz | Streamlit |
-| Búsqueda semántica | LlamaIndex + ChromaDB |
-| Embeddings (local) | `paraphrase-multilingual-MiniLM-L12-v2` (~470 MB) |
-| LLM | Groq — Llama 3.3 70B |
-| Deploy | Streamlit Community Cloud (gratis) |
+| Orquestación / RAG | LlamaIndex |
+| Vector store | ChromaDB (HNSW, local) |
+| Embeddings | `paraphrase-multilingual-MiniLM-L12-v2` (local, ~470 MB) |
+| LLM | Groq — `llama-3.3-70b-versatile` (API compatible con OpenAI) |
+| OCR (opcional en docs escaneados) | Tesseract |
+| Deploy | Streamlit Community Cloud |
+| Logging | loguru |
 
-> **Nota:** se descartó OCI Generative AI (problemas al crear cuenta Free Tier) y Hugging Face Spaces Docker (desde julio 2026 exige plan PRO de pago). Detalle en `docs/sources.md`.
+> Se descartó OCI Generative AI (bloqueo al crear cuenta Free Tier) y Hugging Face Spaces con Docker (plan PRO de pago desde julio 2026). Ver `docs/sources.md`.
 
 ---
 
-## Setup local (Windows)
+## 4. Instrucciones para ejecutar el proyecto
+
+### Opción A — Demo en la nube (recomendado para evaluadores)
+
+Abre: [https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)
+
+### Opción B — Local (Windows)
 
 ```powershell
-# 1. Crear entorno virtual
+# 1. Entorno virtual
 py -3.11 -m venv venv
 .\venv\Scripts\Activate.ps1
 
-# 2. Instalar PyTorch (ajusta cu124 si no tienes GPU NVIDIA)
+# 2. PyTorch (ajusta cu124 si no tienes GPU NVIDIA)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
-# 3. Instalar el resto
+# 3. Dependencias del proyecto
 pip install -r requirements.txt
 
-# 4. Configurar variables
+# 4. Variables de entorno
 copy .env.example .env
-# Edita .env y pega tu API Key de Groq (gratis en https://console.groq.com/keys)
-```
+# Edita .env y pega tu API Key de Groq (gratis: https://console.groq.com/keys)
 
----
-
-## Cómo usarlo
-
-### 1. Indexar los documentos (solo la primera vez, o si cambias archivos)
-
-```powershell
+# 5. Indexar documentos (primera vez o si cambias data/raw/)
 python scripts/ingest_documents.py
-```
 
-### 2. Probar una pregunta en terminal
-
-```powershell
-python scripts/test_query.py "¿Cuántos días de vacaciones tengo si llevo 3 años?"
-```
-
-### 3. Abrir la interfaz de chat
-
-```powershell
+# 6. Abrir la UI
 python run_app.py
 ```
 
 Abre [http://localhost:8501](http://localhost:8501).
 
-> **Importante en Windows:** usa `python run_app.py`, **no** `streamlit run app/app.py`.
+> **Windows:** usa `python run_app.py`, no `streamlit run app/app.py` directo.
 > En Windows, cargar torch + ChromaDB desde el hilo de Streamlit puede cerrar el proceso.
-> `run_app.py` precarga el motor en el hilo principal. En Linux/macOS ambas formas funcionan.
+> `run_app.py` precarga el motor en el hilo principal. En Linux/macOS ambas formas sirven.
+
+**Sin API key:** el sistema entra en modo simulado (`MockLLMClient`): el retrieval funciona y muestra los fragmentos encontrados. Con key real, genera respuestas con Groq.
+
+Prueba rápida por terminal:
+
+```powershell
+python scripts/test_query.py "¿Cuántos días de vacaciones tengo si llevo 3 años?"
+```
 
 ---
 
-## Probar sin API key de Groq
+## 5. Ejemplos de preguntas que el agente puede responder
 
-Si aún no tienes `LLM_API_KEY`, la app entra en **modo simulado**:
-- La búsqueda (retrieval) sigue funcionando con tus documentos
-- La “respuesta” muestra los fragmentos encontrados con su score
-- Verás el badge: *Modo simulado — sin conexión al LLM*
+| Área | Pregunta de ejemplo |
+|---|---|
+| RRHH | ¿Cuántos días de vacaciones tengo al año? |
+| RRHH | ¿Puedo trabajar de forma remota? |
+| Financiero | ¿Cuál es el límite de gastos de transporte? |
+| Financiero | ¿Cómo reporto un gasto de caja chica? |
+| Legal | ¿Cómo protege la empresa mis datos personales? |
+| Legal | ¿Qué dice el código de ética sobre regalos de proveedores? |
+| Operacional | ¿Cómo reporto un incidente P1? |
+| Operacional | ¿Cuáles son los SLA acordados con proveedores? |
+| Fuera de dominio | ¿Cuál es la receta del ceviche? *(debe decir que no sabe)* |
 
-Cuando pongas tu key en `.env` y reinicies, pasa solo a respuestas reales con Groq.
-
-Preguntas de ejemplo:
-
-- ¿Cuántos días de vacaciones tengo si llevo 3 años?
-- ¿Cuál es el límite de gastos de transporte?
-- ¿Cómo reporto un incidente P1?
-- ¿Cuál es la receta del ceviche? ← fuera de dominio (debe decir que no sabe)
+En la UI también aparecen sugerencias al filtrar por área en el menú lateral.
 
 ---
 
-## Deploy en Streamlit Community Cloud
+## 6. Ejemplos de respuestas generadas por el agente
 
-Demo pública actual:
+> Las citas reales aparecen como chips en la UI (archivo · sección · categoría). Aquí se muestran en texto para el README. El contenido sigue los documentos de `data/raw/`.
+
+### Ejemplo A — Pregunta dentro de dominio (RRHH)
+
+**Pregunta:** ¿Cuántos días de vacaciones tengo al año?
+
+**Respuesta (resumen tipico del agente):**
+
+> Todo colaborador con un año completo de servicio tiene derecho a **30 días calendario** de descanso vacacional remunerado, conforme a la legislación peruana vigente.
+>
+> Según la antigüedad:
+> - Menos de 2 años: 30 días calendario
+> - De 2 a 5 años: 30 días + 2 días adicionales de libre disposición
+> - Más de 5 años: 30 días + 5 días adicionales de libre disposición
+>
+> 📄 *[politica-vacaciones-y-permisos.md | Sección: 3.1 / 3.2 | Categoría: rrhh]*
+
+### Ejemplo B — Pregunta dentro de dominio (Financiero)
+
+**Pregunta:** ¿Cuál es el límite de gastos de transporte?
+
+**Respuesta (resumen tipico):**
+
+> El límite de **transporte urbano (taxi/app)** es de **S/ 500 por persona**, solo para traslados laborales dentro de la ciudad.
+>
+> 📄 *[politica-gastos-reembolsos.md | Sección: límites de gasto | Categoría: financiero]*
+
+### Ejemplo C — Pregunta fuera de dominio (anti-alucinación)
+
+**Pregunta:** ¿Cuál es la receta del ceviche?
+
+**Respuesta (fallback):**
+
+> No encontré información suficiente sobre este tema en los documentos disponibles.
+>
+> Te sugiero contactar al área responsable o reformular la pregunta sobre políticas, procesos o documentos internos de la empresa.
+
+Esto demuestra que el agente **no inventa** contenido fuera del corpus.
+
+---
+
+## Qué más incluye la interfaz
+
+- Frase de valor + 3 pasos de uso en el header
+- Expander **¿Qué es YACHAY?** (para colaborador vs RRHH/Legal)
+- Filtro por área y preguntas frecuentes reactivas
+- Fuentes consultadas + badge de confianza + feedback 👍/👎
+- Guion de presentación (~2 min): [`docs/guion-demo.md`](docs/guion-demo.md)
+
+---
+
+## Deploy (detalle)
+
+Demo pública:
 [https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)
 
-1. Sube el repo a GitHub (público, para el plan gratis).
-2. Entra a [share.streamlit.io](https://share.streamlit.io) con GitHub.
-3. **Create app** → repo, rama `main`, archivo principal: `app/app.py`.
-4. En **Advanced settings → Secrets**, pega:
+Para redeployar desde GitHub en [share.streamlit.io](https://share.streamlit.io):
+
+- Archivo principal: `app/app.py`
+- Secrets (TOML):
 
 ```toml
 LLM_API_KEY = "tu_api_key_de_groq"
@@ -152,46 +223,24 @@ EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 EMBEDDING_DIMENSION = "384"
 ```
 
-5. **Deploy**. La primera vez tarda unos minutos (instala deps, descarga el modelo e indexa los documentos).
-
-La URL queda tipo `https://<algo>.streamlit.app`.
-
-Si el disco se limpia (la app “duerme” tras ~12 h sin visitas), al despertar **reingesta sola** si el vector store está vacío.
+Si el disco efímero se vacía, la app **reingesta sola** al detectar Chroma vacío (`src/engine_singleton.py`).
 
 ---
 
-## Documentos incluidos
-
-16 archivos `.md` de ejemplo (empresa ficticia **NovaTech Perú S.A.C.**) en:
-
-```
-data/raw/
-  rrhh/
-  financiero/
-  legal/
-  operacional/
-```
-
-Contexto peruano real (Ley 29733, D.S. 003-97-TR, EsSalud, etc.).
-
-- Mapa de fuentes y decisiones: [`docs/sources.md`](docs/sources.md)
-- Guion para presentar el agente (~2 min): [`docs/guion-demo.md`](docs/guion-demo.md)
-
----
-
-## Estructura del proyecto (resumen)
+## Estructura del repositorio
 
 | Carpeta / archivo | Rol |
 |---|---|
 | `app/app.py` | Interfaz Streamlit |
 | `app/static/` | Logo (búho), avatares |
-| `src/ingest/` | Lectura y chunking de documentos |
+| `src/ingest/` | Lectura y chunking |
 | `src/indexing/` | Embeddings + ChromaDB |
 | `src/retrieval/` | Búsqueda semántica |
 | `src/generation/` | LLM, prompts, small talk, validación |
 | `src/rag_engine.py` | Orquestador del pipeline |
 | `data/raw/` | Documentos fuente |
 | `scripts/` | Ingesta y pruebas por CLI |
+| `docs/` | Fuentes, guion de demo |
 
 ---
 

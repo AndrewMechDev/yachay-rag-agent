@@ -775,34 +775,34 @@ if "engine" not in st.session_state:
 
 _has_messages = bool(st.session_state.messages)
 _hero_class = "yachay-hero compact" if _has_messages else "yachay-hero"
+# st.html (no markdown): evita que indentación + línea en blanco se vea como code fence.
 _hero_extra = ""
 if not _has_messages:
-    _hero_extra = """
-        <p class="purpose-line">
-            Para qué sirve: que el colaborador deje de buscar en PDFs o interrumpir a RRHH/Legal,
-            y que esas áreas dejen de responder las mismas preguntas cien veces.
-        </p>
-        <ul class="how-steps">
-            <li><span class="step-num">1</span> Elige un área en la lista de la izquierda</li>
-            <li><span class="step-num">2</span> Pregunta o usa una sugerencia</li>
-            <li><span class="step-num">3</span> Lee la respuesta y abre las fuentes citadas</li>
-        </ul>
-    """
+    _hero_extra = (
+        '<p class="purpose-line">'
+        "Para qué sirve: que el colaborador deje de buscar en PDFs o interrumpir a RRHH/Legal, "
+        "y que esas áreas dejen de responder las mismas preguntas cien veces."
+        "</p>"
+        '<ul class="how-steps">'
+        '<li><span class="step-num">1</span> Elige un área en la lista de la izquierda</li>'
+        '<li><span class="step-num">2</span> Pregunta o usa una sugerencia</li>'
+        '<li><span class="step-num">3</span> Lee la respuesta y abre las fuentes citadas</li>'
+        "</ul>"
+    )
 
-st.markdown(
-    f"""<div class="{_hero_class}">
-        <div class="brand-row">
-            <div class="brand-logo">{LOGO_HTML}</div>
-            <div class="brand-title">{APP_NAME}</div>
-        </div>
-        <p class="value-prop">
-            <strong>Tu biblioteca interna que responde:</strong>
-            políticas y procesos con la fuente exacta; sin inventar.
-            Si no está en los documentos, lo dice.
-        </p>
-        {_hero_extra}
-    </div>""",
-    unsafe_allow_html=True,
+st.html(
+    f'<div class="{_hero_class}">'
+    f'<div class="brand-row">'
+    f'<div class="brand-logo">{LOGO_HTML}</div>'
+    f'<div class="brand-title">{APP_NAME}</div>'
+    "</div>"
+    '<p class="value-prop">'
+    "<strong>Tu biblioteca interna que responde:</strong> "
+    "políticas y procesos con la fuente exacta; sin inventar. "
+    "Si no está en los documentos, lo dice."
+    "</p>"
+    f"{_hero_extra}"
+    "</div>"
 )
 render_mode_badge(st.session_state.engine.is_mock)
 

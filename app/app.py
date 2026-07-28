@@ -178,6 +178,21 @@ div[data-testid="stElementContainer"]:has(.yachay-hero) {
     border: 1px solid rgba(62, 207, 207, 0.35);
     border-radius: 16px;
 }
+/* CTA enviar: se nota como accion principal */
+[data-testid="stChatInput"] button {
+    background: var(--yachay-accent) !important;
+    color: #0A1F2E !important;
+    border: 2px solid var(--yachay-accent) !important;
+    box-shadow: 2px 2px 0 rgba(62, 207, 207, 0.45) !important;
+}
+[data-testid="stChatInput"] button:hover {
+    background: #FFE08A !important;
+    border-color: #FFE08A !important;
+}
+[data-testid="stChatInput"] button svg {
+    fill: #0A1F2E !important;
+    color: #0A1F2E !important;
+}
 
 /* Selectbox = lista desplegable clara (no solo una flechita invisible) */
 [data-testid="stSidebar"] [data-testid="stSelectbox"] label p {
@@ -313,12 +328,28 @@ div.stButton > button:active {
     max-width: 42rem;
 }
 .value-prop strong { color: var(--yachay-accent); font-weight: 600; }
-.purpose-line {
-    margin: 0 0 0.7rem 0;
-    font-size: 0.84rem;
-    color: var(--yachay-accent-2);
-    max-width: 40rem;
-    line-height: 1.45;
+.yachay-hero.compact {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+}
+.yachay-hero.compact .value-prop {
+    margin: 0.4rem 0 0;
+    font-size: 0.9rem;
+}
+.yachay-hero.compact .purpose-line,
+.yachay-hero.compact .how-steps {
+    display: none;
+}
+.yachay-hero.compact::after {
+    width: 36px;
+    height: 36px;
+    opacity: 0.25;
+}
+.pitch-line {
+    margin: 0.45rem 0 0;
+    font-size: 0.8rem;
+    color: var(--yachay-accent);
+    font-weight: 600;
 }
 .how-steps {
     display: flex;
@@ -510,15 +541,34 @@ def save_feedback(msg: dict, feedback_type: str) -> None:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-_CITATION_PATTERN = re.compile(r"📄\s*\*(\[[^\]]+\])\*")
+_CITATION_PATTERN = re.compile(r"📄\s*\*\[([^\]]+)\]\*")
+
+
+def _short_citation_label(inner: str) -> str:
+    """De 'archivo.md | Sección: X | Categoría: y' deja 'archivo.md · X'."""
+    parts = [p.strip() for p in inner.split("|")]
+    if not parts:
+        return inner
+    file_name = parts[0]
+    section = ""
+    for part in parts[1:]:
+        lower = part.lower()
+        if lower.startswith("sección:") or lower.startswith("seccion:"):
+            section = part.split(":", 1)[-1].strip()
+            break
+    return f"{file_name} · {section}" if section else file_name
 
 
 def format_response_html(text: str) -> str:
     """Convierte el markdown de la respuesta a HTML simple, con las citas
-    (📄 *[archivo | sección | categoría]*) como chips (icono SVG, no emoji)
-    en vez de texto itálico en crudo. Envuelve párrafos en <p> para el
-    espaciado de .yachay-answer."""
-    text = _CITATION_PATTERN.sub(rf'<span class="yachay-citation">{ICON_DOCUMENT_SVG} \1</span>', text)
+    (📄 *[archivo | sección | categoría]*) como chips cortos (archivo · sección).
+    Envuelve párrafos en <p> para el espaciado de .yachay-answer."""
+
+    def _replace_citation(match: re.Match) -> str:
+        label = _short_citation_label(match.group(1))
+        return f'<span class="yachay-citation">{ICON_DOCUMENT_SVG} [{label}]</span>'
+
+    text = _CITATION_PATTERN.sub(_replace_citation, text)
     paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
     html_paragraphs = []
     for p in paragraphs:
@@ -627,6 +677,10 @@ QUESTIONS_BY_CATEGORY = {
     ],
 }
 
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "feedback" not in st.session_state:
+    st.session_state.feedback = {}
 
 with st.sidebar:
     st.markdown(
@@ -688,21 +742,23 @@ Si no hay evidencia en los documentos, lo dice claramente.
     )
     category_filter = category_options[selected_category_label]
 
-    # Sugerencias reactivas al filtro: siempre visibles (no solo antes del
-    # primer mensaje), asi cambiar de area en cualquier momento de la
-    # conversacion muestra de inmediato que se puede preguntar ahi.
-    if category_filter:
-        sidebar_suggestions = QUESTIONS_BY_CATEGORY.get(category_filter, [])
-        sidebar_suggestions_label = f"Preguntas frecuentes de {BUSINESS_CATEGORIES[category_filter]['label']}"
-    else:
-        sidebar_suggestions = [qs[0] for qs in QUESTIONS_BY_CATEGORY.values()]
-        sidebar_suggestions_label = "Preguntas frecuentes (todas las áreas)"
+    # Sugerencias en sidebar solo durante la conversacion (evita duplicar
+    # los chips del area principal cuando el chat esta vacio).
+    if st.session_state.get("messages"):
+        if category_filter:
+            sidebar_suggestions = QUESTIONS_BY_CATEGORY.get(category_filter, [])
+            sidebar_suggestions_label = f"Preguntas frecuentes de {BUSINESS_CATEGORIES[category_filter]['label']}"
+        else:
+            sidebar_suggestions = [qs[0] for qs in QUESTIONS_BY_CATEGORY.values()]
+            sidebar_suggestions_label = "Preguntas frecuentes (todas las áreas)"
 
-    with st.expander(sidebar_suggestions_label, expanded=not st.session_state.get("messages")):
-        for question in sidebar_suggestions:
-            if st.button(question, key=f"sidebar_chip_{question}", use_container_width=True):
-                st.session_state.pending_prompt = question
-                st.rerun()
+        with st.expander(sidebar_suggestions_label, expanded=False):
+            for question in sidebar_suggestions:
+                if st.button(question, key=f"sidebar_chip_{question}", use_container_width=True):
+                    st.session_state.pending_prompt = question
+                    st.rerun()
+    else:
+        st.caption("Las sugerencias de preguntas aparecen en el panel principal.")
 
     with st.expander("Para desarrolladores", expanded=False):
         st.caption(f"LLM: {LLM_PROVIDER_NAME} · Llama 3.3 70B")
@@ -714,24 +770,14 @@ Si no hay evidencia en los documentos, lo dice claramente.
         st.rerun()
 
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "feedback" not in st.session_state:
-    st.session_state.feedback = {}
 if "engine" not in st.session_state:
     st.session_state.engine = load_engine()
 
-st.markdown(
-    f"""<div class="yachay-hero">
-        <div class="brand-row">
-            <div class="brand-logo">{LOGO_HTML}</div>
-            <div class="brand-title">{APP_NAME}</div>
-        </div>
-        <p class="value-prop">
-            <strong>Tu biblioteca interna que responde:</strong>
-            políticas y procesos con la fuente exacta&#8212;sin inventar.
-            Si no está en los documentos, lo dice.
-        </p>
+_has_messages = bool(st.session_state.messages)
+_hero_class = "yachay-hero compact" if _has_messages else "yachay-hero"
+_hero_extra = ""
+if not _has_messages:
+    _hero_extra = """
         <p class="purpose-line">
             Para qué sirve: que el colaborador deje de buscar en PDFs o interrumpir a RRHH/Legal,
             y que esas áreas dejen de responder las mismas preguntas cien veces.
@@ -741,6 +787,20 @@ st.markdown(
             <li><span class="step-num">2</span> Pregunta o usa una sugerencia</li>
             <li><span class="step-num">3</span> Lee la respuesta y abre las fuentes citadas</li>
         </ul>
+    """
+
+st.markdown(
+    f"""<div class="{_hero_class}">
+        <div class="brand-row">
+            <div class="brand-logo">{LOGO_HTML}</div>
+            <div class="brand-title">{APP_NAME}</div>
+        </div>
+        <p class="value-prop">
+            <strong>Tu biblioteca interna que responde:</strong>
+            políticas y procesos con la fuente exacta&#8212;sin inventar.
+            Si no está en los documentos, lo dice.
+        </p>
+        {_hero_extra}
     </div>""",
     unsafe_allow_html=True,
 )
@@ -782,6 +842,7 @@ if not st.session_state.messages:
             Estoy para ahorrarte la búsqueda: pregúntame por vacaciones, gastos, privacidad,
             incidentes u otros procesos documentados. Empieza con una sugerencia o escribe
             tu pregunta&#8212;yo cito el documento.
+            <p class="pitch-line">Ejemplo de valor: menos interrupciones a RRHH/Legal por las mismas preguntas repetidas.</p>
         </div>""",
         unsafe_allow_html=True,
     )

@@ -11,8 +11,9 @@ venv/
 .venv/
 env/
 
-# Variables de entorno
+# Variables de entorno y secretos
 .env
+.streamlit/secrets.toml
 
 # Datos generados
 chroma_db/
@@ -22,14 +23,19 @@ data/processed/*
 # Logs locales
 logs/*
 !logs/.gitkeep
+*.log
 
 # Modelos descargados
 models/
 
-# IDE
+# IDE / editores
 .vscode/
 .idea/
+.cursor/
 *.swp
+*.bak
+*.tmp
+app/static/*.tmp
 
 # OS
 .DS_Store

@@ -82,14 +82,17 @@ AVATAR_USER = str(_avatar_user_path) if _avatar_user_path.exists() else _ICON_US
 THEME_CSS = """
 <style>
 :root {
-    --yachay-bg-1: #1b2140;
-    --yachay-bg-2: #0B0F1A;
-    --yachay-bg-3: #05070c;
-    --yachay-accent: #D4A855;
-    --yachay-text: #EDEBFF;
+    /* Amanecer andino: slate calido + oro vivo + turquesa (amigable, no IA morada) */
+    --yachay-bg-1: #1A3350;
+    --yachay-bg-2: #0E1C2C;
+    --yachay-bg-3: #071018;
+    --yachay-accent: #F5C451;
+    --yachay-accent-2: #3ECFCF;
+    --yachay-text: #F4F7FB;
+    --yachay-muted: rgba(244, 247, 251, 0.72);
     --yachay-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    --yachay-glass-bg: rgba(255, 255, 255, 0.035);
-    --yachay-glass-border: rgba(255, 255, 255, 0.10);
+    --yachay-glass-bg: rgba(255, 255, 255, 0.07);
+    --yachay-glass-border: rgba(62, 207, 207, 0.22);
     --yachay-radius: 20px;
 }
 
@@ -98,7 +101,23 @@ html, body, .stApp, [class*="css"] {
 }
 
 .stApp {
-    background: radial-gradient(circle at top left, var(--yachay-bg-1) 0%, var(--yachay-bg-2) 55%, var(--yachay-bg-3) 100%);
+    /* Concepto "mapa de conocimiento": rejilla + color plano (no glow/degradado tipico de IA) */
+    background-color: #0A1F2E;
+    background-image:
+        repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 39px,
+            rgba(245, 196, 81, 0.05) 39px,
+            rgba(245, 196, 81, 0.05) 40px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            transparent 0,
+            transparent 39px,
+            rgba(62, 207, 207, 0.04) 39px,
+            rgba(62, 207, 207, 0.04) 40px
+        );
 }
 
 @keyframes yachay-fade-in {
@@ -106,8 +125,32 @@ html, body, .stApp, [class*="css"] {
     to { opacity: 1; transform: translateY(0); }
 }
 
+header[data-testid="stHeader"] {
+    background: transparent !important;
+}
+[data-testid="stMainBlockContainer"] {
+    padding-top: 2.75rem !important;
+    padding-bottom: 2rem !important;
+}
+[data-testid="stSidebarContent"] {
+    padding-top: 1.25rem !important;
+}
+
+div[data-testid="stElementContainer"]:has(.yachay-hero),
+div[data-testid="stElementContainer"]:has(.welcome-card),
+div[data-testid="stVerticalBlockBorderWrapper"]:has(.yachay-hero),
+div[data-testid="stVerticalBlockBorderWrapper"]:has(.welcome-card) {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+div[data-testid="stElementContainer"]:has(.yachay-hero) {
+    margin-bottom: 0.85rem !important;
+}
+
 [data-testid="stSidebar"] {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(14, 28, 44, 0.72);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--yachay-glass-border);
 }
@@ -130,23 +173,70 @@ html, body, .stApp, [class*="css"] {
 }
 
 [data-testid="stChatInput"] {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(212, 168, 85, 0.3);
+    border: 1px solid rgba(62, 207, 207, 0.35);
     border-radius: 16px;
 }
 
+/* Selectbox = lista desplegable clara (no solo una flechita invisible) */
+[data-testid="stSidebar"] [data-testid="stSelectbox"] label p {
+    font-size: 0.8rem !important;
+    color: var(--yachay-muted) !important;
+}
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background: rgba(245, 196, 81, 0.12) !important;
+    border: 2px solid var(--yachay-accent) !important;
+    border-radius: 12px !important;
+    min-height: 2.85rem !important;
+    box-shadow: 3px 3px 0 rgba(62, 207, 207, 0.35) !important;
+}
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div:hover {
+    background: rgba(245, 196, 81, 0.18) !important;
+    border-color: #FFE08A !important;
+}
+[data-testid="stSidebar"] [data-testid="stSelectbox"] svg {
+    width: 1.35rem !important;
+    height: 1.35rem !important;
+    color: var(--yachay-accent) !important;
+    opacity: 1 !important;
+}
+.select-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.35rem 0;
+    font-size: 0.75rem;
+    color: var(--yachay-accent-2);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.select-hint .chev {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 4px;
+    background: rgba(62, 207, 207, 0.2);
+    border: 1px solid rgba(62, 207, 207, 0.45);
+    font-size: 0.65rem;
+    line-height: 1;
+}
+
 div.stButton > button {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--yachay-glass-border);
+    background: rgba(18, 42, 61, 0.95);
+    border: 2px solid rgba(62, 207, 207, 0.4);
     border-radius: 12px;
     color: var(--yachay-text);
-    transition: border-color 0.2s ease-out, color 0.2s ease-out, transform 0.1s ease-out;
+    box-shadow: 3px 3px 0 rgba(245, 196, 81, 0.25);
+    transition: border-color 0.15s ease-out, color 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.1s ease-out;
 }
 div.stButton > button:hover {
     border-color: var(--yachay-accent);
     color: var(--yachay-accent);
+    background: rgba(245, 196, 81, 0.12);
+    box-shadow: 4px 4px 0 rgba(62, 207, 207, 0.35);
 }
 div.stButton > button:active {
     transform: scale(0.97);
@@ -156,70 +246,61 @@ div.stButton > button:active {
 .brand-logo svg, .brand-logo img { display: block; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
 .brand-logo.sidebar svg, .brand-logo.sidebar img { width: 32px; height: 32px; }
 
-/* Sube el contenido: menos aire arriba en main y sidebar */
-[data-testid="stMainBlockContainer"] {
-    padding-top: 1rem !important;
-}
-[data-testid="stSidebarContent"] {
-    padding-top: 0.75rem !important;
-}
-.sidebar-brand {
-    margin-bottom: 0.15rem;
-}
+.sidebar-brand { margin-bottom: 0.55rem; }
 .sidebar-brand .brand-subtitle {
-    margin-top: 0.1rem;
+    margin-top: 0.15rem;
     font-size: 0.8rem;
-    line-height: 1.3;
+    line-height: 1.35;
+    color: var(--yachay-muted);
 }
 
-/* Hero unificado: una sola tarjeta glass (evita el "borde roto" de varios markdown) */
 .yachay-hero {
     position: relative;
     overflow: hidden;
-    background: var(--yachay-glass-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--yachay-glass-border);
-    border-radius: var(--yachay-radius);
-    padding: 1rem 1.15rem 1.05rem;
-    margin: 0 0 0.75rem 0;
+    /* Cartel editorial: color plano + barra lateral (lomo de documento) + sombra dura */
+    background: #122A3D;
+    border: 2px solid var(--yachay-accent);
+    border-left: 7px solid var(--yachay-accent);
+    border-radius: 14px;
+    box-shadow: 7px 7px 0 rgba(62, 207, 207, 0.35);
+    padding: 1.15rem 1.25rem 1.15rem;
+    margin: 0.35rem 0 0.25rem 0;
 }
 .yachay-hero .brand-subtitle,
 .yachay-hero .value-prop,
-.yachay-hero .how-steps {
-    position: relative;
-    z-index: 1;
-}
-.yachay-blob {
+.yachay-hero .purpose-line,
+.yachay-hero .how-steps { position: relative; z-index: 1; }
+/* Motivo escalonado andino (chakana) en esquina — no blob/glow */
+.yachay-hero::after {
+    content: "";
     position: absolute;
-    border-radius: 50%;
-    filter: blur(48px);
+    right: 0.85rem;
+    top: 0.85rem;
+    width: 52px;
+    height: 52px;
+    opacity: 0.35;
+    background:
+        linear-gradient(var(--yachay-accent-2), var(--yachay-accent-2)) 0 18px / 52px 4px no-repeat,
+        linear-gradient(var(--yachay-accent-2), var(--yachay-accent-2)) 18px 0 / 4px 52px no-repeat,
+        linear-gradient(var(--yachay-accent), var(--yachay-accent)) 10px 10px / 32px 4px no-repeat,
+        linear-gradient(var(--yachay-accent), var(--yachay-accent)) 10px 10px / 4px 32px no-repeat,
+        linear-gradient(var(--yachay-accent), var(--yachay-accent)) 10px 38px / 32px 4px no-repeat,
+        linear-gradient(var(--yachay-accent), var(--yachay-accent)) 38px 10px / 4px 32px no-repeat;
     pointer-events: none;
     z-index: 0;
-    animation: yachay-blob-float 16s ease-in-out infinite;
-}
-.yachay-blob-1 { width: 180px; height: 180px; top: -70px; right: -40px; left: auto; background: var(--yachay-accent); opacity: 0.22; }
-.yachay-blob-2 { width: 140px; height: 140px; top: -40px; right: 120px; left: auto; background: #6C63C9; opacity: 0.16; animation-delay: -5.5s; }
-.yachay-blob-3 { width: 110px; height: 110px; bottom: -50px; left: 40px; top: auto; background: var(--yachay-text); opacity: 0.08; animation-delay: -10s; }
-@keyframes yachay-blob-float {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(16px, 12px) scale(1.08); }
 }
 
 .brand-title {
     font-size: 1.85rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    background: linear-gradient(90deg, var(--yachay-accent), var(--yachay-text));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--yachay-accent);
     margin: 0;
     line-height: 1.15;
 }
-.brand-title.sidebar {
-    font-size: 1.35rem;
-}
+.brand-title.sidebar { font-size: 1.35rem; color: var(--yachay-accent); }
 .brand-subtitle {
-    color: rgba(237, 235, 255, 0.7);
+    color: var(--yachay-muted);
     font-size: 0.95rem;
     margin-top: 0.2rem;
     margin-bottom: 0;
@@ -227,24 +308,28 @@ div.stButton > button:active {
 .value-prop {
     color: var(--yachay-text);
     font-size: 0.98rem;
-    line-height: 1.45;
-    margin: 0.65rem 0 0.55rem 0;
+    line-height: 1.5;
+    margin: 0.75rem 0 0.4rem 0;
     max-width: 42rem;
 }
-.value-prop strong {
-    color: var(--yachay-accent);
-    font-weight: 600;
+.value-prop strong { color: var(--yachay-accent); font-weight: 600; }
+.purpose-line {
+    margin: 0 0 0.7rem 0;
+    font-size: 0.84rem;
+    color: var(--yachay-accent-2);
+    max-width: 40rem;
+    line-height: 1.45;
 }
 .how-steps {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem 0.85rem;
+    gap: 0.5rem 1rem;
     margin: 0;
     padding: 0;
     list-style: none;
 }
 .how-steps li {
-    color: rgba(237, 235, 255, 0.78);
+    color: var(--yachay-muted);
     font-size: 0.8125rem;
     display: inline-flex;
     align-items: center;
@@ -254,27 +339,28 @@ div.stButton > button:active {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.3rem;
+    height: 1.3rem;
     border-radius: 999px;
-    background: rgba(212, 168, 85, 0.15);
-    border: 1px solid rgba(212, 168, 85, 0.35);
-    color: var(--yachay-accent);
+    background: rgba(62, 207, 207, 0.18);
+    border: 1px solid rgba(62, 207, 207, 0.45);
+    color: var(--yachay-accent-2);
     font-size: 0.7rem;
     font-weight: 700;
 }
 .welcome-card {
-    background: var(--yachay-glass-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--yachay-glass-border);
-    border-radius: 16px;
-    padding: 0.9rem 1rem;
-    margin-bottom: 0.75rem;
+    background: #122A3D;
+    border: 2px solid rgba(62, 207, 207, 0.45);
+    border-left: 6px solid var(--yachay-accent-2);
+    border-radius: 14px;
+    box-shadow: 5px 5px 0 rgba(245, 196, 81, 0.22);
+    padding: 0.95rem 1.05rem;
+    margin: 0.35rem 0 0.85rem 0;
     color: var(--yachay-text);
     font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.55;
 }
-.welcome-card strong { color: var(--yachay-accent); }
+.welcome-card strong { color: var(--yachay-accent-2); }
 .audience-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -282,12 +368,12 @@ div.stButton > button:active {
     margin-top: 0.5rem;
 }
 .audience-card {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--yachay-glass-border);
     border-radius: 12px;
     padding: 0.65rem 0.75rem;
     font-size: 0.78rem;
-    color: rgba(237, 235, 255, 0.85);
+    color: var(--yachay-muted);
     line-height: 1.4;
 }
 .audience-card strong {
@@ -297,7 +383,7 @@ div.stButton > button:active {
     margin-bottom: 0.2rem;
 }
 .caption-text {
-    color: rgba(237, 235, 255, 0.65);
+    color: var(--yachay-muted);
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
@@ -313,7 +399,7 @@ div.stButton > button:active {
 }
 
 .glass-alert {
-    background: rgba(212, 168, 85, 0.07);
+    background: rgba(245, 196, 81, 0.09);
     backdrop-filter: blur(12px);
     border-left: 3px solid var(--yachay-accent);
     border-radius: 12px;
@@ -331,20 +417,20 @@ div.stButton > button:active {
     backdrop-filter: blur(8px);
     border: 1px solid var(--yachay-glass-border);
 }
-.badge-high { background: rgba(94, 219, 138, 0.15); color: #6EE7A8; border-color: rgba(94, 219, 138, 0.4); }
-.badge-medium { background: rgba(212, 168, 85, 0.15); color: var(--yachay-accent); border-color: rgba(212, 168, 85, 0.4); }
-.badge-low { background: rgba(224, 92, 92, 0.15); color: #F08787; border-color: rgba(224, 92, 92, 0.4); }
+.badge-high { background: rgba(52, 211, 153, 0.16); color: #6EE7B7; border-color: rgba(52, 211, 153, 0.45); }
+.badge-medium { background: rgba(245, 196, 81, 0.16); color: var(--yachay-accent); border-color: rgba(245, 196, 81, 0.45); }
+.badge-low { background: rgba(248, 113, 113, 0.16); color: #FCA5A5; border-color: rgba(248, 113, 113, 0.4); }
 
 .source-title { font-weight: 600; color: var(--yachay-text); }
-.source-meta { color: rgba(237, 235, 255, 0.68); font-size: 0.8125rem; }
+.source-meta { color: var(--yachay-muted); font-size: 0.8125rem; }
 
 .source-preview {
-    background: rgba(255, 255, 255, 0.03);
-    border-left: 2px solid var(--yachay-glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    border-left: 2px solid var(--yachay-accent-2);
     border-radius: 8px;
     padding: 0.6rem 0.85rem;
     margin: 0.35rem 0 0.75rem 0;
-    color: rgba(237, 235, 255, 0.75);
+    color: var(--yachay-muted);
     font-size: 0.8125rem;
     line-height: 1.5;
     font-style: italic;
@@ -355,27 +441,27 @@ div.stButton > button:active {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: rgba(212, 168, 85, 0.08);
-    border: 1px solid rgba(212, 168, 85, 0.25);
+    background: rgba(245, 196, 81, 0.12);
+    border: 1px solid rgba(245, 196, 81, 0.35);
     border-radius: 8px;
     padding: 0.05rem 0.5rem;
     margin: 0.15rem 0.15rem 0.15rem 0;
     font-size: 0.78rem;
     font-style: normal;
-    color: rgba(212, 168, 85, 0.95);
+    color: #FFE08A;
     white-space: normal;
 }
 .yachay-citation svg { flex-shrink: 0; }
 
 .badge-mock {
-    background: rgba(224, 92, 92, 0.12);
-    color: #F0A787;
-    border-color: rgba(224, 92, 92, 0.35);
+    background: rgba(248, 113, 113, 0.14);
+    color: #FDBA74;
+    border-color: rgba(248, 113, 113, 0.35);
 }
 .badge-live {
-    background: rgba(94, 219, 138, 0.12);
-    color: #6EE7A8;
-    border-color: rgba(94, 219, 138, 0.35);
+    background: rgba(52, 211, 153, 0.14);
+    color: #6EE7B7;
+    border-color: rgba(52, 211, 153, 0.35);
 }
 
 @keyframes yachay-skeleton-pulse {
@@ -393,35 +479,16 @@ div.stButton > button:active {
 h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; }
 
 @media (prefers-reduced-motion: reduce) {
-    [data-testid="stChatMessage"], .glass-card {
-        animation: none !important;
-    }
-    div.stButton > button {
-        transition: none !important;
-    }
-    .skeleton-line {
-        animation: none !important;
-        opacity: 0.5 !important;
-    }
-    .yachay-blob {
-        animation: none !important;
-    }
+    [data-testid="stChatMessage"], .glass-card { animation: none !important; }
+    div.stButton > button { transition: none !important; }
+    .skeleton-line { animation: none !important; opacity: 0.5 !important; }
 }
 
 @media (max-width: 480px) {
-    [data-testid="stHorizontalBlock"] {
-        flex-wrap: wrap !important;
-    }
-    [data-testid="stHorizontalBlock"] > div {
-        min-width: 100% !important;
-    }
-    .audience-grid {
-        grid-template-columns: 1fr;
-    }
-    .how-steps {
-        flex-direction: column;
-        gap: 0.35rem;
-    }
+    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+    [data-testid="stHorizontalBlock"] > div { min-width: 100% !important; }
+    .audience-grid { grid-template-columns: 1fr; }
+    .how-steps { flex-direction: column; gap: 0.35rem; }
 }
 </style>
 """
@@ -605,14 +672,19 @@ Si no hay evidencia en los documentos, lo dice claramente.
     )
 
     st.subheader("Filtrar por área")
+    st.markdown(
+        '<div class="select-hint"><span class="chev">▼</span> Lista desplegable — elige el área de documentos</div>',
+        unsafe_allow_html=True,
+    )
     category_options = {"Todas las áreas": None}
     for key, val in BUSINESS_CATEGORIES.items():
         category_options[val["label"]] = key
 
     selected_category_label = st.selectbox(
-        "Categoría de documentos:",
+        "Área de documentos",
         options=list(category_options.keys()),
         index=0,
+        help="Abre la lista y elige RRHH, Financiero, Legal u Operacional para acotar las respuestas.",
     )
     category_filter = category_options[selected_category_label]
 
@@ -651,21 +723,23 @@ if "engine" not in st.session_state:
 
 st.markdown(
     f"""<div class="yachay-hero">
-        <span class="yachay-blob yachay-blob-1"></span>
-        <span class="yachay-blob yachay-blob-2"></span>
-        <span class="yachay-blob yachay-blob-3"></span>
         <div class="brand-row">
             <div class="brand-logo">{LOGO_HTML}</div>
             <div class="brand-title">{APP_NAME}</div>
         </div>
         <p class="value-prop">
-            <strong>Responde dudas de políticas y procesos internos con la fuente exacta</strong>
-            — sin inventar. Si no está en los documentos, lo dice.
+            <strong>Tu biblioteca interna que responde:</strong>
+            políticas y procesos con la fuente exacta&#8212;sin inventar.
+            Si no está en los documentos, lo dice.
+        </p>
+        <p class="purpose-line">
+            Para qué sirve: que el colaborador deje de buscar en PDFs o interrumpir a RRHH/Legal,
+            y que esas áreas dejen de responder las mismas preguntas cien veces.
         </p>
         <ul class="how-steps">
-            <li><span class="step-num">1</span> Elige un área (opcional)</li>
-            <li><span class="step-num">2</span> Haz una pregunta o usa una sugerencia</li>
-            <li><span class="step-num">3</span> Revisa la respuesta y las fuentes citadas</li>
+            <li><span class="step-num">1</span> Elige un área en la lista de la izquierda</li>
+            <li><span class="step-num">2</span> Pregunta o usa una sugerencia</li>
+            <li><span class="step-num">3</span> Lee la respuesta y abre las fuentes citadas</li>
         </ul>
     </div>""",
     unsafe_allow_html=True,
@@ -705,9 +779,9 @@ if not st.session_state.messages:
     st.markdown(
         f"""<div class="welcome-card">
             <strong>Hola, soy {APP_NAME}.</strong>
-            Pregúntame sobre vacaciones, gastos, privacidad, incidentes u otros
-            procesos documentados. Empieza con una sugerencia de abajo o escribe
-            tu propia pregunta.
+            Estoy para ahorrarte la búsqueda: pregúntame por vacaciones, gastos, privacidad,
+            incidentes u otros procesos documentados. Empieza con una sugerencia o escribe
+            tu pregunta&#8212;yo cito el documento.
         </div>""",
         unsafe_allow_html=True,
     )

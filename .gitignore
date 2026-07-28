@@ -49,3 +49,6 @@ Thumbs.db
 
 # Tooling local (Claude Code: launch config, hooks, skills instalados como impeccable)
 .claude/
+
+# Guías locales de planificación (no publicar en el repo remoto)
+docs/local-guides/

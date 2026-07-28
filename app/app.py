@@ -33,7 +33,7 @@ _page_icon = (
 )
 
 st.set_page_config(
-    page_title=f"{APP_NAME} — Asistente de Conocimiento Corporativo",
+    page_title=f"{APP_NAME} - Asistente de Conocimiento Corporativo",
     page_icon=_page_icon,
     layout="wide",
     initial_sidebar_state="expanded",
@@ -797,7 +797,7 @@ st.markdown(
         </div>
         <p class="value-prop">
             <strong>Tu biblioteca interna que responde:</strong>
-            políticas y procesos con la fuente exacta&#8212;sin inventar.
+            políticas y procesos con la fuente exacta; sin inventar.
             Si no está en los documentos, lo dice.
         </p>
         {_hero_extra}
@@ -841,7 +841,7 @@ if not st.session_state.messages:
             <strong>Hola, soy {APP_NAME}.</strong>
             Estoy para ahorrarte la búsqueda: pregúntame por vacaciones, gastos, privacidad,
             incidentes u otros procesos documentados. Empieza con una sugerencia o escribe
-            tu pregunta&#8212;yo cito el documento.
+            tu pregunta; yo cito el documento.
             <p class="pitch-line">Ejemplo de valor: menos interrupciones a RRHH/Legal por las mismas preguntas repetidas.</p>
         </div>""",
         unsafe_allow_html=True,

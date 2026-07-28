@@ -2,6 +2,14 @@
 
 > **YACHAY** (quechua: *conocimiento, saber*) — Asistente de IA que responde preguntas sobre documentos internos de la empresa, citando siempre la fuente.
 
+## Probarlo ahora (demo en vivo)
+
+La app está desplegada en Streamlit Community Cloud. Ábrela en el navegador (sin instalar nada):
+
+**[Abrir YACHAY en Streamlit](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)**
+
+> La primera carga puede tardar unos segundos (la app “despierta” si estuvo inactiva).
+
 ---
 
 ## ¿Para qué sirve?
@@ -23,8 +31,11 @@ Si no hay información suficiente en los documentos, **lo dice claramente** (no 
 - Chatear en lenguaje natural sobre políticas y procesos
 - Filtrar por área: RRHH, Financiero, Legal u Operacional
 - Ver **preguntas sugeridas** según el área que elijas (en el menú lateral)
+- Leer el objetivo en **¿Qué es YACHAY?** (para quién es: colaborador vs RRHH/Legal)
+- Seguir los **3 pasos** del header: área → pregunta → fuentes citadas
 - Revisar las **fuentes consultadas** de cada respuesta
 - Dar feedback 👍 / 👎 a las respuestas
+- Presentar el agente con el guion de ~2 min: [`docs/guion-demo.md`](docs/guion-demo.md)
 
 ---
 
@@ -124,6 +135,9 @@ Preguntas de ejemplo:
 
 ## Deploy en Streamlit Community Cloud
 
+Demo pública actual:
+[https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)
+
 1. Sube el repo a GitHub (público, para el plan gratis).
 2. Entra a [share.streamlit.io](https://share.streamlit.io) con GitHub.
 3. **Create app** → repo, rama `main`, archivo principal: `app/app.py`.
@@ -160,7 +174,8 @@ data/raw/
 
 Contexto peruano real (Ley 29733, D.S. 003-97-TR, EsSalud, etc.).
 
-Mapa de fuentes y decisiones del proyecto: [`docs/sources.md`](docs/sources.md).
+- Mapa de fuentes y decisiones: [`docs/sources.md`](docs/sources.md)
+- Guion para presentar el agente (~2 min): [`docs/guion-demo.md`](docs/guion-demo.md)
 
 ---
 

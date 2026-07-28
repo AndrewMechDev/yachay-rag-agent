@@ -4,9 +4,11 @@
 
 ## Probarlo ahora (demo en vivo)
 
-La app está desplegada en Streamlit Community Cloud. Ábrela en el navegador (sin instalar nada):
+La app está desplegada y **lista para usar** en Streamlit Community Cloud (sin instalar nada):
 
-**[Abrir YACHAY en Streamlit](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)**
+### 🔗 [https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)
+
+O con este enlace corto: **[Abrir YACHAY (demo en vivo)](https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/)**
 
 > La primera carga puede tardar unos segundos (la app “despierta” si estuvo inactiva).
 
@@ -191,6 +193,36 @@ En la UI también aparecen sugerencias al filtrar por área en el menú lateral.
 > Te sugiero contactar al área responsable o reformular la pregunta sobre políticas, procesos o documentos internos de la empresa.
 
 Esto demuestra que el agente **no inventa** contenido fuera del corpus.
+
+---
+
+## 7. Evidencias de prueba (screenshots)
+
+Carpeta: [`docs/screenshots/`](docs/screenshots/).
+
+Ahí puedes (o el equipo puede) guardar capturas de la demo en vivo para la revisión del challenge. Convención:
+
+| Archivo | Qué debe mostrar |
+|---|---|
+| `docs/screenshots/01-home.png` | Pantalla inicial (hero + sugerencias) |
+| `docs/screenshots/02-respuesta-con-fuentes.png` | Pregunta real con citas (ej. incidente P1 / vacaciones) |
+| `docs/screenshots/03-fuera-de-dominio.png` | Pregunta fuera de dominio (anti-alucinación) |
+| `docs/screenshots/04-filtro-area.png` | Filtro por área + preguntas frecuentes |
+
+Instrucciones: [`docs/screenshots/README.md`](docs/screenshots/README.md).
+
+Cuando existan los PNG, se muestran así:
+
+![Home de YACHAY](docs/screenshots/01-home.png)
+
+![Respuesta con fuentes citadas](docs/screenshots/02-respuesta-con-fuentes.png)
+
+![Respuesta fuera de dominio](docs/screenshots/03-fuera-de-dominio.png)
+
+![Filtro por área](docs/screenshots/04-filtro-area.png)
+
+**Reproducir las pruebas en la demo:**  
+https://yachay-rag-agent-gzjptpjs6mjpqz5454zbrs.streamlit.app/
 
 ---
 

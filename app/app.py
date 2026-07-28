@@ -152,44 +152,149 @@ div.stButton > button:active {
     transform: scale(0.97);
 }
 
-.brand-row { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
-.brand-logo svg, .brand-logo img { display: block; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-.brand-logo.sidebar svg, .brand-logo.sidebar img { width: 34px; height: 34px; }
+.brand-row { display: flex; align-items: center; gap: 0.65rem; position: relative; z-index: 1; }
+.brand-logo svg, .brand-logo img { display: block; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+.brand-logo.sidebar svg, .brand-logo.sidebar img { width: 32px; height: 32px; }
 
-.yachay-hero { position: relative; overflow: hidden; padding-bottom: 0.25rem; }
-.yachay-hero .brand-subtitle { position: relative; z-index: 1; }
+/* Sube el contenido: menos aire arriba en main y sidebar */
+[data-testid="stMainBlockContainer"] {
+    padding-top: 1rem !important;
+}
+[data-testid="stSidebarContent"] {
+    padding-top: 0.75rem !important;
+}
+.sidebar-brand {
+    margin-bottom: 0.15rem;
+}
+.sidebar-brand .brand-subtitle {
+    margin-top: 0.1rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+/* Hero unificado: una sola tarjeta glass (evita el "borde roto" de varios markdown) */
+.yachay-hero {
+    position: relative;
+    overflow: hidden;
+    background: var(--yachay-glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--yachay-glass-border);
+    border-radius: var(--yachay-radius);
+    padding: 1rem 1.15rem 1.05rem;
+    margin: 0 0 0.75rem 0;
+}
+.yachay-hero .brand-subtitle,
+.yachay-hero .value-prop,
+.yachay-hero .how-steps {
+    position: relative;
+    z-index: 1;
+}
 .yachay-blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(50px);
+    filter: blur(48px);
     pointer-events: none;
     z-index: 0;
     animation: yachay-blob-float 16s ease-in-out infinite;
 }
-.yachay-blob-1 { width: 220px; height: 220px; top: -90px; left: -50px; background: var(--yachay-accent); opacity: 0.28; }
-.yachay-blob-2 { width: 200px; height: 200px; top: -70px; left: 200px; background: #6C63C9; opacity: 0.22; animation-delay: -5.5s; }
-.yachay-blob-3 { width: 160px; height: 160px; top: -20px; left: 440px; background: var(--yachay-text); opacity: 0.10; animation-delay: -10s; }
+.yachay-blob-1 { width: 180px; height: 180px; top: -70px; right: -40px; left: auto; background: var(--yachay-accent); opacity: 0.22; }
+.yachay-blob-2 { width: 140px; height: 140px; top: -40px; right: 120px; left: auto; background: #6C63C9; opacity: 0.16; animation-delay: -5.5s; }
+.yachay-blob-3 { width: 110px; height: 110px; bottom: -50px; left: 40px; top: auto; background: var(--yachay-text); opacity: 0.08; animation-delay: -10s; }
 @keyframes yachay-blob-float {
     0%, 100% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(24px, 18px) scale(1.12); }
+    50% { transform: translate(16px, 12px) scale(1.08); }
 }
 
 .brand-title {
-    font-size: 2.25rem;
+    font-size: 1.85rem;
     font-weight: 700;
     letter-spacing: -0.02em;
     background: linear-gradient(90deg, var(--yachay-accent), var(--yachay-text));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 0;
+    margin: 0;
+    line-height: 1.15;
 }
 .brand-title.sidebar {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
 }
 .brand-subtitle {
     color: rgba(237, 235, 255, 0.7);
-    font-size: 1rem;
-    margin-top: 0.25rem;
+    font-size: 0.95rem;
+    margin-top: 0.2rem;
+    margin-bottom: 0;
+}
+.value-prop {
+    color: var(--yachay-text);
+    font-size: 0.98rem;
+    line-height: 1.45;
+    margin: 0.65rem 0 0.55rem 0;
+    max-width: 42rem;
+}
+.value-prop strong {
+    color: var(--yachay-accent);
+    font-weight: 600;
+}
+.how-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.85rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.how-steps li {
+    color: rgba(237, 235, 255, 0.78);
+    font-size: 0.8125rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.how-steps .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: rgba(212, 168, 85, 0.15);
+    border: 1px solid rgba(212, 168, 85, 0.35);
+    color: var(--yachay-accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.welcome-card {
+    background: var(--yachay-glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--yachay-glass-border);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--yachay-text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.welcome-card strong { color: var(--yachay-accent); }
+.audience-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.audience-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--yachay-glass-border);
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.78rem;
+    color: rgba(237, 235, 255, 0.85);
+    line-height: 1.4;
+}
+.audience-card strong {
+    display: block;
+    color: var(--yachay-accent);
+    font-size: 0.8rem;
+    margin-bottom: 0.2rem;
 }
 .caption-text {
     color: rgba(237, 235, 255, 0.65);
@@ -310,6 +415,13 @@ h1, h2, h3 { color: var(--yachay-text) !important; font-weight: 600 !important; 
     [data-testid="stHorizontalBlock"] > div {
         min-width: 100% !important;
     }
+    .audience-grid {
+        grid-template-columns: 1fr;
+    }
+    .how-steps {
+        flex-direction: column;
+        gap: 0.35rem;
+    }
 }
 </style>
 """
@@ -388,15 +500,11 @@ def render_answer_streamed(placeholder, text: str, chunk_words: int = 6, delay: 
 
 
 def render_mode_badge(is_mock: bool) -> None:
-    """Badge persistente que indica si las respuestas vienen de MockLLMClient o del LLM real."""
+    """Solo avisa en modo mock. El proveedor LLM real se oculta del usuario final
+    (vive en el expander 'Para desarrolladores' del sidebar)."""
     if is_mock:
         st.markdown(
             '<span class="badge badge-mock" role="status">Modo simulado — sin conexión al LLM</span>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f'<span class="badge badge-live" role="status">Conectado a {LLM_PROVIDER_NAME}</span>',
             unsafe_allow_html=True,
         )
 
@@ -455,26 +563,46 @@ QUESTIONS_BY_CATEGORY = {
 
 with st.sidebar:
     st.markdown(
-        f"""<div class="brand-row">
-            <div class="brand-logo sidebar">{LOGO_HTML}</div>
-            <div class="brand-title sidebar">{APP_NAME}</div>
+        f"""<div class="sidebar-brand">
+            <div class="brand-row">
+                <div class="brand-logo sidebar">{LOGO_HTML}</div>
+                <div class="brand-title sidebar">{APP_NAME}</div>
+            </div>
+            <div class="brand-subtitle">Asistente de conocimiento corporativo</div>
         </div>""",
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="brand-subtitle">Asistente de Conocimiento Corporativo</div>', unsafe_allow_html=True)
 
-    st.divider()
+    with st.expander("¿Qué es YACHAY?", expanded=False):
+        st.markdown(
+            """
+**Objetivo:** responder dudas sobre políticas y procesos internos
+**citando la fuente exacta**, sin inventar.
+
+Si no hay evidencia en los documentos, lo dice claramente.
+            """
+        )
+        st.markdown(
+            """<div class="audience-grid">
+                <div class="audience-card">
+                    <strong>Colaborador</strong>
+                    Encuentra la respuesta en segundos, sin buscar PDFs ni interrumpir a un área.
+                </div>
+                <div class="audience-card">
+                    <strong>RRHH / Legal / Ops</strong>
+                    Menos preguntas repetidas por Slack o correo; el documento habla por sí solo.
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     st.markdown(
-        """<div class="glass-alert">
-            <strong>Este es un agente de IA.</strong> Las respuestas se generan automáticamente
-            a partir de documentos internos. Verifica siempre la información con el
-            área responsable antes de tomar decisiones críticas.
+        """<div class="glass-alert" style="margin-top: 0.65rem;">
+            <strong>Este es un agente de IA.</strong> Las respuestas se generan a partir de
+            documentos internos. Verifica con el área responsable antes de decisiones críticas.
         </div>""",
         unsafe_allow_html=True,
     )
-
-    st.divider()
 
     st.subheader("Filtrar por área")
     category_options = {"Todas las áreas": None}
@@ -504,7 +632,9 @@ with st.sidebar:
                 st.session_state.pending_prompt = question
                 st.rerun()
 
-    st.divider()
+    with st.expander("Para desarrolladores", expanded=False):
+        st.caption(f"LLM: {LLM_PROVIDER_NAME} · Llama 3.3 70B")
+        st.caption("Guion de demo: docs/guion-demo.md")
 
     if st.button("Limpiar conversación", use_container_width=True):
         st.session_state.messages = []
@@ -528,12 +658,19 @@ st.markdown(
             <div class="brand-logo">{LOGO_HTML}</div>
             <div class="brand-title">{APP_NAME}</div>
         </div>
-        <p class="brand-subtitle">Pregunta lo que necesites sobre políticas, procesos y documentos internos de la empresa.</p>
+        <p class="value-prop">
+            <strong>Responde dudas de políticas y procesos internos con la fuente exacta</strong>
+            — sin inventar. Si no está en los documentos, lo dice.
+        </p>
+        <ul class="how-steps">
+            <li><span class="step-num">1</span> Elige un área (opcional)</li>
+            <li><span class="step-num">2</span> Haz una pregunta o usa una sugerencia</li>
+            <li><span class="step-num">3</span> Revisa la respuesta y las fuentes citadas</li>
+        </ul>
     </div>""",
     unsafe_allow_html=True,
 )
 render_mode_badge(st.session_state.engine.is_mock)
-st.divider()
 
 for i, msg in enumerate(st.session_state.messages):
     avatar = AVATAR_USER if msg["role"] == "user" else AVATAR_ASSISTANT
@@ -565,6 +702,15 @@ for i, msg in enumerate(st.session_state.messages):
                 st.caption(f"Feedback registrado: {'Positivo' if fb == 'positive' else 'Negativo'}")
 
 if not st.session_state.messages:
+    st.markdown(
+        f"""<div class="welcome-card">
+            <strong>Hola, soy {APP_NAME}.</strong>
+            Pregúntame sobre vacaciones, gastos, privacidad, incidentes u otros
+            procesos documentados. Empieza con una sugerencia de abajo o escribe
+            tu propia pregunta.
+        </div>""",
+        unsafe_allow_html=True,
+    )
     if category_filter:
         # Categoria especifica seleccionada en el sidebar: sus 3 preguntas.
         suggestions = QUESTIONS_BY_CATEGORY.get(category_filter, [])
